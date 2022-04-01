@@ -22,10 +22,12 @@ library(dplyr)
 library(tidyr)
 library(rio)
 library(ggplot2)
+library(corrplot)
 
 # Functions to clean document, get data from wide to long format
 source("functions/Cleaning.R")
 source("functions/demographics counts.R")
+source("functions/outliers.R")
 
 
 # Setting global chunk options
@@ -176,21 +178,121 @@ hist(clean_data$pol_orient_3)
 
 Some 5 responses but minimal, very skewed, should still transform.
 
-## Outliers
+## Outliers - percentiles
 
-### Boxplots
+### BFI
 
-### Other outlier searches
+#### Self
 
-## Multicolinearity
+```{r}
+get_outlier_number(clean_data$bfi_self)
+```
 
-### Correlation matrix for CFA
+#### Stereo
 
-*This also corresponds to factorability*
+```{r}
+get_outlier_number(clean_data$bfi_stereo)
+```
 
-### Correlation matrix for MLMs
+#### Target
 
-### Correlation matrix including stereotyping
+```{r}
+get_outlier_number(clean_data$bfi_targ)
+```
+
+### ELI
+
+#### Self
+
+```{r}
+get_outlier_number(clean_data$eli_self)
+```
+
+#### Stereo
+
+```{r}
+get_outlier_number(clean_data$eli_stereo)
+```
+
+#### Target
+
+```{r}
+get_outlier_number(clean_data$eli_targ)
+```
+
+### Threat measures
+
+#### Realistic
+
+```{r}
+get_outlier_number(clean_data$realistic_q)
+```
+
+#### Symbolic
+
+```{r}
+get_outlier_number(clean_data$symbolic_q)
+```
+
+#### Distance - coffee
+
+```{r}
+get_outlier_number(clean_data$distance_coffee)
+```
+
+#### Distance - town
+
+```{r}
+get_outlier_number(clean_data$distance_town)
+```
+
+#### Explicit - target
+
+```{r}
+get_outlier_number(clean_data$explicit_targ)
+```
+
+#### Explicit - group
+
+```{r}
+get_outlier_number(clean_data$explicit_group)
+```
+
+### Political orientation
+
+### Overall
+
+```{r}
+get_outlier_number(clean_data$pol_orient_1)
+```
+
+### Social
+
+```{r}
+outlier_ind1 <- get_outlier_number(clean_data$pol_orient_2)
+
+orient_2_outliers <- clean_data[outlier_ind1,]
+orient_2_outliers %>% 
+  select(sub_id, pol_orient_2) %>% 
+  unique()
+```
+
+2 outliers when removed from long-format
+
+### Economic
+
+```{r}
+outlier_ind2 <- get_outlier_number(clean_data$pol_orient_3)
+
+orient_3_outliers <- clean_data[outlier_ind2,]
+orient_3_outliers %>% 
+  select(sub_id, pol_orient_2) %>% 
+  unique()
+```
+
+3 outliers when removed from long-format; one overlaps with above
+
+*If I do analyses with political orientation, will need to remove outliers
 
 # Demographics {.tabset .tabset-fade .tabset-pills}
 
