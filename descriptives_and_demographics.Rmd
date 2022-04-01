@@ -25,6 +25,8 @@ library(ggplot2)
 
 # Functions to clean document, get data from wide to long format
 source("functions/Cleaning.R")
+source("functions/demographics counts.R")
+
 
 # Setting global chunk options
 knitr::opts_chunk$set(echo = TRUE,
@@ -196,36 +198,202 @@ Some 5 responses but minimal, very skewed, should still transform.
 
 ### Overall - before cleaning
 
+```{r}
+wide_data %>% 
+  select(sub_id) %>% 
+  unique() %>% 
+  nrow()
+```
+
 ### Overall - after cleaning
+
+```{r}
+clean_data %>% 
+  select(sub_id) %>% 
+  unique() %>% 
+  nrow()
+```
 
 ### Overall - after cleaning & listwise removal
 
+```{r}
+# Looking at main variables in analysis
+clean_data %>% 
+  select(sub_id, analog_condition, target_condition, distance_coffee,
+         distance_town, realistic_q, symbolic_q, explicit_targ, explicit_group,
+         will_to_convo, pol_orient_1, pol_orient_2, pol_orient_3, bfi_self,
+         bfi_stereo, bfi_targ, eli_self, eli_stereo, eli_targ) %>% 
+  na.omit() %>% 
+  select(sub_id) %>% 
+  unique() %>% 
+  nrow()
+```
+
 ### Participants per condition
+
+```{r}
+clean_data %>% 
+  select(sub_id, target_condition, analog_condition) %>% 
+  unique() %>% 
+  group_by(target_condition, analog_condition) %>% 
+  count()
+```
 
 ## Prolific vs UO N
 
 ### Overall - before cleaning
 
+```{r}
+wide_data %>% 
+  select(sub_id, data_site) %>% 
+  unique() %>% 
+  group_by(data_site) %>% 
+  count()
+```
+
 ### Overall - after cleaning
 
-### Overall - after cleaning & listwise removal
+```{r}
+clean_data %>% 
+  select(sub_id, data_site) %>% 
+  unique() %>% 
+  group_by(data_site) %>% 
+  count()
+```
 
 ## Age
 
+```{r}
+clean_data %>%
+  select(sub_id, age) %>% 
+  na.omit() %>% 
+  summarize(mean = mean(age),
+            sd = sd(age))
+```
+
 ## Race
+
+```{r}
+ethnicity_counts <- clean_data %>% 
+  select(sub_id, race) %>%  
+  na.omit() %>% 
+  unique() %>% 
+  group_by(race) %>% 
+  count()
+
+dem_percent_table(ethnicity_counts)
+```
+
+*everyone responded to race demographic question
 
 ## Gender
 
+```{r}
+gender_counts <- clean_data %>% 
+  select(sub_id, gender) %>%  
+  na.omit() %>% 
+  unique() %>% 
+  group_by(gender) %>% 
+  count()
+
+dem_percent_table(gender_counts)
+```
+
+*everyone responded to gender demographic
+
 ## Education
+
+```{r}
+edu_counts <- clean_data %>% 
+  select(sub_id, education) %>%  
+  na.omit() %>% 
+  unique() %>% 
+  group_by(education) %>% 
+  count()
+
+dem_percent_table(edu_counts)
+```
+
+*Everyone responded about their education
 
 ## Parent education
 
-## Country born
+```{r}
+edu_parent_counts <- clean_data %>% 
+  select(sub_id, parent_education) %>%  
+  na.omit() %>% 
+  unique() %>% 
+  group_by(parent_education) %>% 
+  count()
+
+dem_percent_table(edu_parent_counts)
+```
+
+*One person did not respond about parent education: 416
+
+## Birth country
+
+```{r}
+birth_country_counts <- clean_data %>% 
+  select(sub_id, country_birth) %>% 
+  na.omit() %>% 
+  unique() %>% 
+  group_by(country_birth) %>% 
+  count()
+
+dem_percent_table(birth_country_counts)
+```
+
+*Everyone responded about birth country
 
 ## Country raised
 
-## Language
+```{r}
+raised_country_counts <- clean_data %>% 
+  select(sub_id, country_raised) %>% 
+  na.omit() %>% 
+  unique() %>% 
+  group_by(country_raised) %>% 
+  count()
 
-## Political orientation
+dem_percent_table(raised_country_counts)
+```
 
+*Everyone responded about what country they were raised in
 
+### Follow-up years in US
+
+```{r}
+clean_data %>%
+  filter(country_raised != "Raised in US") %>%
+  select(sub_id, raised_follow) %>%
+  unique()
+```
+
+Of those who responded that they were not primarily raised in the US, they have been in the US for at least 10 years to 35 years. Most should be able to vote and should all know about U.S. politics to have an opinion.
+
+## Native language
+
+```{r}
+lang_counts <- language_counts <- clean_data %>% 
+  select(sub_id, native_language) %>% 
+  na.omit() %>% 
+  unique() %>% 
+  group_by(native_language) %>% 
+  count()
+
+dem_percent_table(lang_counts)
+```
+
+*Everyone responded to this question
+
+### Native language follow-up
+
+```{r}
+clean_data %>% 
+  filter(native_language == "Not English") %>% 
+  select(sub_id, native_lang_follow) %>% 
+  unique()
+```
+
+Of the 10 who responded that English is not their native language, they have spoken it for between 17-51 years. Not a concern about comprehension.
