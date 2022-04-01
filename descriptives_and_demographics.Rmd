@@ -1,0 +1,231 @@
+---
+title: "Descriptives and Demographics"
+output: 
+    html_document:
+      code_download: TRUE
+      toc: TRUE
+      toc_float:
+        collapsed: FALSE
+      toc_depth: 1
+      code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r data prep, echo = FALSE, warning = FALSE, message = FALSE, error = FALSE}
+# Loading packages
+library(psych)
+library(effects)
+library(magrittr) # part of the tidyverse but must be read in on its own
+library(parameters)
+library(dplyr)
+library(tidyr)
+library(rio)
+library(ggplot2)
+
+# Functions to clean document, get data from wide to long format
+source("functions/Cleaning.R")
+
+# Setting global chunk options
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+options(scipen = 999)
+
+# Importing data
+wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
+
+# Cleaning data using functions
+long_data <- get_wrangled(wide_data)
+
+clean_data <- remove_participants(long_data)
+```
+
+# Descriptives {.tabset .tabset-fade .tabset-pills}
+
+## Overall
+
+```{r}
+clean_data %>% 
+  select(where(is.numeric)) %>% 
+  psych::describe()
+```
+
+## Normality - Histograms
+
+### Threat measures
+
+#### Symbolic
+
+```{r}
+hist(clean_data$symbolic_q)
+```
+
+Almost flat - if there were more response options, it may have been bi-modal. Highest point is 4 and then 1 and 3 are close to the same. Not the same as in the Pilot... the CFA may not replicate.
+
+#### Realistic
+
+```{r}
+hist(clean_data$realistic_q)
+```
+
+Left-skewed, more similar to the Pilot than symbolic. Not concerning skew.
+
+#### Distance - coffee
+
+```{r}
+hist(clean_data$distance_coffee)
+```
+
+Left-Skewed but with some respones at 1 and 2, should be robust enough in GLM
+
+#### Distance - town
+
+```{r}
+hist(clean_data$distance_town)
+```
+
+Right-skewed, but really that most people responded to "2" and then it flattens out. Not a normal curve but not missing responses, should be robust enough.
+
+#### Explicit - target
+
+```{r}
+hist(clean_data$explicit_targ)
+```
+
+Right-skewed... opposite of the pilot?
+
+#### Explicit - group 
+
+```{r}
+hist(clean_data$explicit_group)
+```
+
+Left-skewed... opposite of the pilot? Seems like the pattern switched for explicit target and group between the pilot and the main study.
+
+### BFI
+
+#### Self
+
+```{r}
+hist(clean_data$bfi_self)
+```
+
+Trending toward bimodal for self, but normal for self and target.
+
+#### Stereo
+
+```{r}
+hist(clean_data$bfi_stereo)
+```
+
+#### Target
+
+```{r}
+hist(clean_data$bfi_targ)
+```
+
+### ELI
+
+#### Self
+
+```{r}
+hist(clean_data$eli_self)
+```
+
+Skewed for the self but normal for stereo and targ - interesting!
+
+#### Stereo
+
+```{r}
+hist(clean_data$eli_stereo)
+```
+
+#### Targ
+
+```{r}
+hist(clean_data$eli_targ)
+```
+
+### Political Orientation
+
+#### Overall
+
+```{r}
+hist(clean_data$pol_orient_1)
+````
+
+Right/positive-skewed, more severe than in the pilot (missing option 5). Would need to transform if used as a predictor.
+
+#### Social 
+
+```{r}
+hist(clean_data$pol_orient_2)
+````
+
+Right/positive-skewed, more severe than the pilot (also missing) responses to 5. Would need to transform this variable.
+
+#### Economic
+
+```{r}
+hist(clean_data$pol_orient_3)
+````
+
+Some 5 responses but minimal, very skewed, should still transform.
+
+## Outliers
+
+### Boxplots
+
+### Other outlier searches
+
+## Multicolinearity
+
+### Correlation matrix for CFA
+
+*This also corresponds to factorability*
+
+### Correlation matrix for MLMs
+
+### Correlation matrix including stereotyping
+
+# Demographics {.tabset .tabset-fade .tabset-pills}
+
+## Sample size
+
+### Overall - before cleaning
+
+### Overall - after cleaning
+
+### Overall - after cleaning & listwise removal
+
+### Participants per condition
+
+## Prolific vs UO N
+
+### Overall - before cleaning
+
+### Overall - after cleaning
+
+### Overall - after cleaning & listwise removal
+
+## Age
+
+## Race
+
+## Gender
+
+## Education
+
+## Parent education
+
+## Country born
+
+## Country raised
+
+## Language
+
+## Political orientation
+
+
