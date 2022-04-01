@@ -46,4 +46,18 @@ long_data <- get_wrangled(wide_data)
 clean_data <- remove_participants(long_data)
 ```
 
-# Multicolinearity across levels?
+Multicolinearity across levels?
+
+# Assumptions 
+
+## Normality 
+
+*Checked in "Descriptives and Demographics" file. For predictiors, it is normal enough since MLMs are robust to violations. The only variables not normal are the political orientation measures, which are not confirmatory predictors and will be transformed if used.*
+
+## Multicolinearity
+
+### Correlation matrix for predictors for MLMs
+
+### Correlation matrix including stereotyping
+
+### VIF
