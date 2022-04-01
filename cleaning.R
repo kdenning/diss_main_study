@@ -25,7 +25,7 @@ get_wrangled <- function(wide_data){
   
   # Wide to long ---------------------------------------------------------------
   
-  data_long <- wide_removed_repeats %>% 
+  data_long <- wide_data %>% 
   pivot_longer(c(bfi_self_1:bfi_self_19,
                  bfi_ster_1:bfi_ster_19,
                  bfi_targ_1:bfi_targ_19),
@@ -208,11 +208,54 @@ get_wrangled <- function(wide_data){
                                     target_condition == "CONTROL" & manip_check_profess == "Teacher" ~ "Correct",
                                     target_condition == "CONTROL" & manip_check_profess == "Business manger" ~ "Incorrect",
                                     target_condition == "CONTROL" & manip_check_profess == "No information" ~ "Incorrect",
-                                    target_condition == "CONTROL" & manip_check_profess == "Can't remember" ~ "Incorrect"))
+                                    target_condition == "CONTROL" & manip_check_profess == "Can't remember" ~ "Incorrect"),
+        q_check_intervention3 = case_when(analog_condition == "analog" & intervention_check3 == "Yes" ~ "Correct",
+                                          analog_condition == "analog" & intervention_check3 == "No" ~ "Incorrect",
+                                          analog_condition == "analog" & intervention_check3 == "Can't remember" ~ "Incorrect",
+                                          analog_condition == "control" & intervention_check3 == "Yes" ~ "Incorrect",
+                                          analog_condition == "control" & intervention_check3 == "No" ~ "Correct",
+                                          analog_condition == "control" & intervention_check3 == "Can't remember" ~ "Incorrect"))
   
 }
 
-# Check for repeat IP addresses ------------------------------------------------
+# Checking function works
+# long_data <- get_wrangled(wide_data)
+
+
+# Function to remove participants ----------------------------------------------
+
+# Overall participant number before cleaning participants (for reference)
+
+# Originally 500 participants; reference as I remove participants through function below
+# 
+# long_data %>% 
+#   select(sub_id) %>% 
+#   unique() %>% 
+#   count()
+
+remove_participants <- function(long_data){
+  long_data %>% 
+    # Removing repeat participants -----------------------------------------------
+  filter(!sub_id %in% c(247, 262, 293, 297, 295, 304, 284, 351, 374, 
+                        359, 467, 470, 479, 484, 504, 507, 525, 538, 543)) %>% #removes 11 participants (to 489)
+    # Removing manipulation and intervention checks ------------------------------
+  filter(q_check_politics == "Correct" & 
+           q_check_profess == "Correct" &
+           q_check_intervention3 == "Correct" &
+           manip_check_covid == "No information") %>% # removes another 57 participants (to 432)
+    # Removing those who did not vote for Biden ----------------------------------
+  filter(vote_check == "Biden") %>% # Removes another 4 participants (to 428)
+    # Removing those who did not correctly complete the task ---------------------
+  filter(analog_completion == "Completed" | analog_completion == "Control/NA") %>% # Removes another 4 participants (to 424)
+    # Removing those who responded to bfi & eli with over 70% 3's
+    filter(!sub_id %in% c(31, 82, 87, 130, 131, 216, 275, 385)) # Removes another 7 since one had been removed earlier (to 417)
+
+}
+
+# checking function works
+# clean_data <- remove_participants(long_data)
+
+# Check for repeat IP addresses to inform function above -----------------------
 
 # wide_data_ip <- import("data/diss_main_combined_data_raw.csv")
 
@@ -240,18 +283,47 @@ get_wrangled <- function(wide_data){
 ## Participant from UO that started it twice, but never finished. This was already 
 ## removed in the basic clean data that had ip addresses removed: 467/470
 
-# Check manipulation check removals --------------------------------------------
+# Check if screeners worked ----------------------------------------------------
+# One level is everyone from Prolific; no need to filter
+# consent <- clean_data %>% 
+#   mutate(consent_prolific = as.factor(consent_prolific))
+# levels(consent$consent_prolific)
 
-# Check screeners for removals -------------------------------------------------
+# One level is everyone from Prolific; no need to filter
+# UO should be US participants
+# location <- clean_data %>% 
+#   mutate(us_location_prolific = as.factor(us_location_prolific))
 
-# Check perspective taking response removals -----------------------------------
+# levels(location$us_location_prolific)
+
+# One level is everyone from Prolific; no need to filter
+# international <- clean_data %>% 
+#   mutate(international_travel_prolific = as.factor(international_travel_prolific))
+# 
+# levels(international$international_travel_prolific)
+
+# Everyone has lived in the US long enough to understand US politics and most likely be US citizens
+# clean_data %>% 
+#   filter(country_raised != "Raised in US") %>% 
+#   select(sub_id, raised_follow) %>% 
+#   unique()
 
 # Check participant bias (string of 3's) removals ------------------------------
 
-# Function to remove participants ----------------------------------------------
-
-## Removing repeat participants
-wide_removed_repeats <- wide_data[-c(247, 262, 293, 297, 295, 304, 284, 351, 374, 
-                                     359, 467, 470, 479, 484, 504, 507, 525, 538, 543), ]
-        
+# wide_data_sub <- wide_data %>% 
+#   select(sub_id, 
+#          bfi_self_1:eli_self_10,
+#          bfi_ster_1:eli_stereo_10,
+#          bfi_targ_1:eli_targ_10)
+# 
+# bias_counts <- apply(wide_data_sub, 1, function(x) length(which(x=="3")))
+# bias_counts <- as.data.frame(bias_counts)
+# 
+# total_answers <- length(wide_data_sub)
+# 
+# # Used the sub_ids obtained from below in function above
+# bias_counts %>% 
+#   mutate(bias_percents = (bias_counts/total_answers)*100) %>% 
+#   filter(bias_percents > 70)
+#         
   
