@@ -27,7 +27,6 @@ library(rio)
 library(ggplot2)
 library(emmeans)
 library(corrplot)
-library(usdm)
 
 # Functions to clean document, get data from wide to long format
 source("functions/Cleaning.R")
@@ -49,7 +48,7 @@ clean_data <- remove_participants(long_data)
 
 clean_data %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
-         itt_comp_c = itt_comp - mean(itt_comp, na.rm = TRUE))
+         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
 ```
 
 https://cran.r-project.org/web/packages/mlma/vignettes/MLMAvignette.html
@@ -103,13 +102,16 @@ corrplot(cor_plot_predictors1,
 
 #### With random intercept
 
+*Tested basic model without threat because singularities kept occurring.*
+
 ```{r}
 mod_1_data_bfi <- clean_data %>% 
-  select(sub_id, bfi_number, bfi_targ, bfi_self_c, itt_comp_c, target_condition) %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc, 
+         target_condition) %>% 
   unique() %>% 
   na.omit() 
 
-model1_bfi_randint <- lmer(bfi_targ ~ bfi_self_c + 
+model1_bfi_randint <- lmer(bfi_targ_pmc ~ bfi_self_pmc + 
                      (1 | sub_id), 
                    data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
 
@@ -130,13 +132,19 @@ ICC_bfi = icc_mod_res_bfi$`Sum Sq`[1] / sum(icc_mod_res_bfi$`Sum Sq`)
 ICC_bfi #The ICC is tiny - is this why I am getting a singular analysis?
 ```
 
+Low ICC could be to blame.
+
 ##### More descriptives
 
 ```{r}
 psych::describe(mod_1_data_bfi)
 ```
 
+Re-checking the descriptives of these particular variables and they look normal.
+
 ### Random Slopes/No random Intercept
+
+I think the singularities had to do with zero variance of the random intercept.
 
 ```{r}
 model1_bfi_randslopes <- lmer(bfi_targ ~ bfi_self_c*itt_comp_c + 
@@ -147,6 +155,50 @@ tab_model(model1_bfi_randslopes,
           digits = 3)
 ```
 
+After removing the zero intercept and only allowing random slopes for responses for the self, the model ran without issues. Results indicate there is a main effect of threat on projection, where projection decreases as threat increases.
+
+#### Simple Slopes
+
+```{r}
+threat_levels = list(itt_comp_c = c(-1.07, 0, 1.07))
+mod1_simpslopes_bfi <- emtrends(model1_bfi_randslopes, ~ itt_comp_c,
+                              var ="bfi_self_c",
+                              at = threat_levels)
+
+mod1_simpslopes_bfi
+```
+
+#### Visualization
+
+```{r}
+mod1_bfi_maineffect <- effect("bfi_self_c:itt_comp_c",
+                         xlevels = list(itt_comp_c = c(-1.07, 0, 1.07)),
+                         mod = model1_bfi_randslopes)
+
+mod1_bfi_maineffect <- as.data.frame(mod1_bfi_maineffect)
+mod1_bfi_maineffect$itt_comp_c <- as.factor(mod1_bfi_maineffect$itt_comp_c)
+
+ggplot(mod1_bfi_maineffect, aes(bfi_self_c, fit, group = itt_comp_c)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_c)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target-level \nthreat",
+                        breaks = c(-1.07, 0, 1.07), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat",
+         subtitle = "Using the BFI",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
+```
 
 ## ELI
 
@@ -188,12 +240,13 @@ corrplot(cor_plot_predictors_eli,
 
 ```{r}
 mod_1_data_eli <- clean_data %>% 
-  select(sub_id, eli_number, eli_targ, eli_self_c, itt_comp_c, target_condition) %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
+         target_condition) %>% 
   unique() %>% 
   na.omit() 
 
-model1_eli_randint <- lmer(eli_targ ~ eli_self_c + # itt does not work as a RE; model does not converge
-                     (eli_self_c | sub_id), 
+model1_eli_randint <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
+                     (1 | sub_id), 
                    data = mod_1_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
 
 tab_model(model1_eli_randint,
@@ -224,9 +277,138 @@ tab_model(model1_eli_randslopes,
           digits = 3)
 ```
 
-# Normality 
+#### Simple Slopes
 
-*Checked in "Descriptives and Demographics" file. For predictors, it is normal enough since MLMs are robust to violations. The only variables not normal are the political orientation measures, which are not confirmatory predictors and will be transformed if used.*
+```{r}
+mod1_simpslopes_eli <- emtrends(model1_eli_randslopes, ~ itt_comp_c,
+                              var ="eli_self_c",
+                              at = threat_levels)
+
+mod1_simpslopes_eli
+```
+
+#### Visualization
+
+```{r}
+mod1_eli_maineffect <- effect("eli_self_c:itt_comp_c",
+                         xlevels = list(itt_comp_c = c(-1.07, 0, 1.07)),
+                         mod = model1_eli_randslopes)
+
+mod1_eli_maineffect <- as.data.frame(mod1_eli_maineffect)
+mod1_eli_maineffect$itt_comp_c <- as.factor(mod1_eli_maineffect$itt_comp_c)
+
+ggplot(mod1_eli_maineffect, aes(eli_self_c, fit, group = itt_comp_c)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_c)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target-level \nthreat",
+                        breaks = c(-1.07, 0, 1.07), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat",
+         subtitle = "Using the ELI",
+       x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+# Model 1b: Added threat condition
+
+*Technically not pre-registered or predicted, but consistent with other predictions about threat*
+
+## BFI
+
+### MLM Results
+
+### Random Slopes/No random Intercept
+
+```{r}
+model1b_bfi_randslopes <- lmer(bfi_targ ~ bfi_self_c*itt_comp_c*target_condition + 
+                     (0 + bfi_self_c | sub_id), 
+                   data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
+
+tab_model(model1b_bfi_randslopes,
+          digits = 3)
+```
+
+Results indicate that the main effect of the target-level threat composite goes away when we include threat condition. There is a main effect of condition on projection for both contrasts. There is also an interaction of target condition and the the threat composite for the contrast comparing the warm target to the control.
+
+#### Simple Slopes
+
+##### Target condition main effect
+
+```{r}
+mod1b_simpslopes_bfi_me <- emtrends(model1b_bfi_randslopes, ~ target_condition,
+                              var ="bfi_self_c",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM")))
+
+mod1b_simpslopes_bfi_me
+```
+
+##### Interaction
+
+```{r}
+targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
+
+mod1b_simpslopes_bfi_int <- emtrends(model1b_bfi_randslopes, ~ target_condition*itt_comp_c,
+                              var ="bfi_self_c",
+                              at = c(targ_levels, threat_levels))
+
+mod1b_simpslopes_bfi_int
+```
+
+#### Visualization
+
+```{r}
+mod1b_bfi_int <- effect("bfi_self_c:itt_comp_c:target_condition",
+                         xlevels = list(itt_comp_c = c(-1.07, 0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = model1b_bfi_randslopes)
+
+mod1b_bfi_int <- as.data.frame(mod1b_bfi_int)
+mod1b_bfi_int$itt_comp_c <- as.factor(mod1b_bfi_int$itt_comp_c)
+mod1b_bfi_int$target_condition <- as.factor(mod1b_bfi_int$target_condition)
+
+threat_labels <- c("-1.07" = "Low Threat",
+                   "0" = "Average Threat",
+                   "1.07" = "High Threat")
+
+ggplot(mod1b_bfi_int, aes(bfi_self_c, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~itt_comp_c,
+             labeller = labeller(condition_order = threat_labels))
+  scale_linetype_manual("Target-level \nthreat",
+                        breaks = c(-1.07, 0, 1.07), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat",
+         subtitle = "Using the BFI",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+
 
 ### VIF?
 

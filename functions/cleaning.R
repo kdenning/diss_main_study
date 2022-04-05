@@ -183,11 +183,7 @@ get_wrangled <- function(wide_data){
                       "bfi_targ", "eli_number", "eli_self", "eli_stereo", "eli_targ"),
                      list(~as.numeric(.))) %>% 
   # Adding grand mean centered predictors for BFI and ELI
-  mutate(bfi_self_c = bfi_self - mean(bfi_self, na.rm = TRUE),
-        bfi_stereo_c = bfi_stereo - mean(bfi_stereo, na.rm = TRUE),
-        eli_self_c = eli_self - mean(eli_self, na.rm = TRUE),
-        eli_stereo_c = eli_stereo - mean(eli_stereo, na.rm = TRUE),
-        # Adding variables to represent whether or not they need removed based on target conditions
+  mutate( # Adding variables to represent whether or not they need removed based on target conditions
         q_check_politics = case_when(target_condition == "LOSS" & manip_check_politics == "Voted Trump" ~ "Correct",
                                      target_condition == "LOSS" & manip_check_politics == "Can't remember" ~ "Incorrect",
                                      target_condition == "LOSS" & manip_check_politics == "No information" ~ "Incorrect",
@@ -214,7 +210,27 @@ get_wrangled <- function(wide_data){
                                           analog_condition == "analog" & intervention_check3 == "Can't remember" ~ "Incorrect",
                                           analog_condition == "control" & intervention_check3 == "Yes" ~ "Incorrect",
                                           analog_condition == "control" & intervention_check3 == "No" ~ "Correct",
-                                          analog_condition == "control" & intervention_check3 == "Can't remember" ~ "Incorrect"))
+                                          analog_condition == "control" & intervention_check3 == "Can't remember" ~ "Incorrect")) %>% 
+    group_by(sub_id) %>% 
+    mutate(bfi_self_mp = mean(bfi_self, na.rm = T),
+           bfi_stereo_mp = mean(bfi_stereo, na.rm = T),
+           bfi_targ_mp = mean(bfi_targ, na.rm = T),
+           eli_self_mp = mean(eli_self, na.rm = T),
+           eli_stereo_mp = mean(eli_stereo, na.rm = T),
+           eli_targ_mp = mean(eli_targ, na.rm = T)) %>% 
+    ungroup() %>% 
+    mutate(bfi_self_gmc = scale(bfi_self, center = T, scale = F),
+           bfi_stereo_gmc = scale(bfi_stereo, center = T, scale = F),
+           bfi_targ_gmc = scale(bfi_targ, center = T, scale = F),
+           eli_self_gmc = scale(eli_self, center = T, scale = F),
+           eli_stereo_gmc = scale(eli_stereo, center = T, scale = F),
+           eli_targ_gmc = scale(eli_targ, center = T, scale = F),
+           bfi_self_pmc = bfi_self - bfi_self_mp,
+           bfi_stereo_pmc = bfi_stereo - bfi_stereo_mp,
+           bfi_targ_pmc = bfi_targ - bfi_targ_mp,
+           eli_self_pmc = eli_self - eli_self_mp,
+           eli_stereo_pmc = eli_stereo - eli_stereo_mp,
+           eli_targ_pmc = eli_targ - eli_targ_mp)
   
 }
 
