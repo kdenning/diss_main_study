@@ -246,9 +246,9 @@ remove_participants <- function(long_data){
     # Removing those who did not vote for Biden ----------------------------------
   filter(vote_check == "Biden") %>% # Removes another 4 participants (to 428)
     # Removing those who did not correctly complete the task ---------------------
-  filter(analog_completion == "Completed" | analog_completion == "Control/NA") %>% # Removes another 4 participants (to 424)
-    # Removing those who responded to bfi & eli with over 70% 3's
-    filter(!sub_id %in% c(31, 82, 87, 130, 131, 216, 275, 385)) # Removes another 7 since one had been removed earlier (to 417)
+  filter(analog_completion == "Completed" | analog_completion == "Control/NA") %>%  # Removes another 4 participants (to 424)
+  filter(target_condition != "") %>% 
+  droplevels()
 
 }
 
@@ -310,8 +310,8 @@ remove_participants <- function(long_data){
 
 # Check participant bias (string of 3's) removals ------------------------------
 
-# wide_data_sub <- wide_data %>% 
-#   select(sub_id, 
+# wide_data_sub <- wide_data %>%
+#   select(sub_id,
 #          bfi_self_1:eli_self_10,
 #          bfi_ster_1:eli_stereo_10,
 #          bfi_targ_1:eli_targ_10)
@@ -322,8 +322,8 @@ remove_participants <- function(long_data){
 # total_answers <- length(wide_data_sub)
 # 
 # # Used the sub_ids obtained from below in function above
-# bias_counts %>% 
-#   mutate(bias_percents = (bias_counts/total_answers)*100) %>% 
-#   filter(bias_percents > 70)
-#         
-  
+# bias_counts %>%
+#   mutate(bias_percents = (bias_counts/total_answers)*100) %>%
+#   filter(bias_percents > 95)
+
+# None greater than 95%, so not really that odd; there was at least some variability

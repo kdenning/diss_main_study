@@ -26,6 +26,8 @@ library(tidyr)
 library(rio)
 library(ggplot2)
 library(emmeans)
+library(corrplot)
+library(usdm)
 
 # Functions to clean document, get data from wide to long format
 source("functions/Cleaning.R")
@@ -44,20 +46,158 @@ wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 long_data <- get_wrangled(wide_data)
 
 clean_data <- remove_participants(long_data)
+
+clean_data %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_c = itt_comp - mean(itt_comp, na.rm = TRUE))
 ```
+
+https://cran.r-project.org/web/packages/mlma/vignettes/MLMAvignette.html
+
+https://journals.plos.org/plosone/article/file?type=printable&id=10.1371/journal.pone.0241072
+
+I keep seeing the Bauer approach but it doesn't appear to use bootstrapping and I don't entirely understand it... Option 3 here makes sense to me, but would I do multiple models first and then this at the end?:
+https://quantdev.ssri.psu.edu/sites/qdev/files/ILD_Ch07_2017_Within-PersonMedationWithMLM.html
 
 Multicolinearity across levels?
 
-# Assumptions 
+# Model 1: Threat on Counter-projection
 
-## Normality 
+## BFI
 
-*Checked in "Descriptives and Demographics" file. For predictiors, it is normal enough since MLMs are robust to violations. The only variables not normal are the political orientation measures, which are not confirmatory predictors and will be transformed if used.*
+### Correlation matrix (multicolinearity)
 
-## Multicolinearity
+```{r}
+cor_predictors1 <- clean_data %>% 
+  select(sub_id, bfi_number, bfi_self, bfi_self_c, bfi_targ, itt_comp) %>% 
+  unique() %>% 
+  na.omit() %>% 
+  select(bfi_self, bfi_self_c, bfi_targ, itt_comp)
 
-### Correlation matrix for predictors for MLMs
+cor_matrix_predictors1 <- cor(cor_predictors1)
+cor_matrix_predictors1
 
-### Correlation matrix including stereotyping
+cor_plot_predictors1 <- corrplot(cor_matrix_predictors1, method = "number")
 
-### VIF
+colnames(cor_plot_predictors1) = rep(c('BFI: Self',
+                                       'BFI: Self Centered'
+                                       'BFI: Target',
+                                       'Threat Composite'))
+
+rownames(cor_plot_predictors1) = rep(c('BFI: Self',
+                                       'BFI: Self Centered'
+                                       'BFI: Target',
+                                       'Threat Composite'))
+corrplot(cor_plot_predictors1, 
+         is.corr = TRUE, 
+         #method = "number", 
+         method = 'color',
+         col.lim = c(0, 1),
+         tl.cex = .85,
+         tl.col = 'black',
+         addgrid.col = 'white',
+         addCoef.col = 'grey50')
+```
+
+### MLM Results
+
+```{r}
+mod_1_data_bfi <- clean_data %>% 
+  select(sub_id, bfi_number, bfi_targ, bfi_self_c, itt_comp_c, target_condition) %>% 
+  unique() %>% 
+  na.omit() 
+
+mod_model1_bfi <- lmer(bfi_targ ~ bfi_self_c + 
+                     (1 | sub_id), 
+                   data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
+
+tab_model(mod_model1_bfi,
+          digits = 3)
+```
+
+### Exploring ICC
+
+```{r}
+#simple linear model to see if school association leads to too high of an ICC
+icc_mod_bfi <- lm(bfi_targ ~ bfi_self_c, data = mod_1_data_bfi)
+
+#getting anova results of simple linear model from earlier
+icc_mod_res_bfi = anova(icc_mod_bfi)
+
+ICC_bfi = icc_mod_res_bfi$`Sum Sq`[1] / sum(icc_mod_res_bfi$`Sum Sq`)
+ICC_bfi #The ICC is tiny - is this why I am getting a singular analysis?
+```
+
+## ELI
+
+### Correlation matrix (multicolinearity)
+
+```{r}
+cor_predictors_eli <- clean_data %>% 
+  select(sub_id, eli_number, eli_self, eli_targ, itt_comp) %>% 
+  unique() %>% 
+  na.omit() %>% 
+  select(eli_self, eli_targ, itt_comp)
+
+cor_matrix_predictors_eli <- cor(cor_predictors_eli)
+cor_matrix_predictors_eli
+
+cor_plot_predictors_eli <- corrplot(cor_matrix_predictors_eli, method = "number")
+
+colnames(cor_plot_predictors_eli) = rep(c('ELI: Self',
+                                      'ELI: Target',
+                                      'Threat Composite'))
+
+rownames(cor_plot_predictors_eli) = rep(c('ELI: Self',
+                                      'ELI: Target',
+                                      'Threat Composite'))
+corrplot(cor_plot_predictors_eli, 
+         is.corr = TRUE, 
+         #method = "number", 
+         method = 'color',
+         col.lim = c(0, 1),
+         tl.cex = .85,
+         tl.col = 'black',
+         addgrid.col = 'white',
+         addCoef.col = 'grey50')
+```
+
+### MLM
+
+```{r}
+mod_1_data_eli <- clean_data %>% 
+  select(sub_id, eli_number, eli_targ, eli_self_c, itt_comp_c, target_condition) %>% 
+  unique() %>% 
+  na.omit() 
+
+mod_model1_eli <- lmer(eli_targ ~ eli_self_c + # itt does not work as a RE; model does not converge
+                     (eli_self_c | sub_id), 
+                   data = mod_1_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
+
+tab_model(mod_model1_eli,
+          digits = 3)
+```
+
+### Exploring ICC
+
+```{r}
+#simple linear model to see if school association leads to too high of an ICC
+icc_mod_eli <- lm(eli_targ ~ eli_self_c, data = mod_1_data_eli)
+
+#getting anova results of simple linear model from earlier
+icc_mod_res_eli = anova(icc_mod_eli)
+
+ICC_eli = icc_mod_res_eli$`Sum Sq`[1] / sum(icc_mod_res_eli$`Sum Sq`)
+ICC_eli #The ICC is tiny - is this why I am getting a singular analysis?
+```
+
+# Normality 
+
+*Checked in "Descriptives and Demographics" file. For predictors, it is normal enough since MLMs are robust to violations. The only variables not normal are the political orientation measures, which are not confirmatory predictors and will be transformed if used.*
+
+### VIF?
+
+
+
+
+

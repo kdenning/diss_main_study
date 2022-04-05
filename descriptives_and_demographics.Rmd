@@ -98,7 +98,7 @@ Right-skewed, but really that most people responded to "2" and then it flattens 
 hist(clean_data$explicit_targ)
 ```
 
-Right-skewed... opposite of the pilot?
+Right-skewed... Different than pilot, but pilot was more flat, with slightly higher 1s and 2s (may have looked like this with more participants).
 
 #### Explicit - group 
 
@@ -106,7 +106,7 @@ Right-skewed... opposite of the pilot?
 hist(clean_data$explicit_group)
 ```
 
-Left-skewed... opposite of the pilot? Seems like the pattern switched for explicit target and group between the pilot and the main study.
+Left-skewed... same as pilot.
 
 ### BFI
 
@@ -431,7 +431,7 @@ edu_parent_counts <- clean_data %>%
 dem_percent_table(edu_parent_counts)
 ```
 
-*One person did not respond about parent education: 416
+*One person did not respond about parent education: 423
 
 ## Birth country
 
