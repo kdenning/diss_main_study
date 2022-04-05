@@ -92,6 +92,40 @@ corrplot(cor_plot_cfa,
 
 The results are consistent with the Pilot Analysis - symbolic and realistic are highly correlated to one another and highly correlated with target-level explicit threat, but not group-level explicit threat. Validates that symbolic and realistic threat are measuring target-level threat, and that these measures differ from implicit measures of physical distancing.
 
+## CFA Model (As pre-registered)
+
+### 2 indicators
+
+```{r}
+cfa_vars_2 <- cfa_vars %>% 
+  select(realistic_q, symbolic_q)
+
+cfa_mod_2  <- 'target_threat  =~ symbolic_q + realistic_q'
+
+onefac_cfa2 <- cfa(cfa_mod_2, data = cfa_vars_2) 
+
+summary(onefac_cfa2) 
+```
+
+Not identifiable
+
+### 3 Indicators
+
+```{r}
+cfa_vars_3 <- cfa_vars %>% 
+  select(symbolic_q, realistic_q, explicit_targ)
+
+cfa_mod_3  <- 'target_threat  =~ symbolic_q + realistic_q + explicit_targ'
+
+onefac_cfa3 <- cfa(cfa_mod_3, data = cfa_vars_3) 
+
+summary(onefac_cfa3) 
+```
+
+Might not be the correct analysis due to small number of indicators
+
+## EFA
+
 ## nfactors
 
 ```{r}
@@ -99,22 +133,21 @@ par(mar=c(1,1,1,1))
 nfactors(cfa_vars)
 ```
 
-## CFA Model
+### 1 Factor EFA
 
-```{r}
+```{r EFA 1 fac}
+efa_replication <- cfa_vars %>% 
+  select(realistic_q, symbolic_q, distance_coffee, distance_town)
 
-cfa_vars_3 <- cfa_vars %>% 
-  select(symbolic_q, realistic_q, explicit_targ)
+efa_1fac <- psych::fa(efa_replication, nfactors = 1)
 
-cfa_mod  <- 'target_threat  =~ symbolic_q + realistic_q + explicit_targ'
-
-onefac_cfa <- cfa(cfa_mod, data = cfa_vars_2) 
-summary(onefac_cfa) 
+efa_1fac %>% 
+  model_parameters(sort = TRUE, threshold = "max")
 ```
 
-Might not be the correct analysis due to small number of indicators
+Replicating the pilot, realistic and symbolic have high loadings, while the distance measuries have low loadings and high uniqueness. This corresponds with the plots from nfactors that show that at most there could be two latent variables and, when forced to one, only symbolic and realistic load reliably into the one factor.
 
-## Alpha
+## Alpha: Realistic and Symbolic
 
 ```{r}
 cfa_vars_2 <- cfa_vars %>% 
@@ -124,6 +157,8 @@ psych::alpha(cfa_vars_2)
 ```
 
 ## Composite target threat measure
+
+*Combining realistic and symbolic threat into one measure, like in the pilot.*
 
 ```{r}
 clean_data %<>%   
