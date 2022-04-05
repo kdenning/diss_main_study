@@ -101,21 +101,23 @@ corrplot(cor_plot_predictors1,
 
 ### MLM Results
 
+#### With random intercept
+
 ```{r}
 mod_1_data_bfi <- clean_data %>% 
   select(sub_id, bfi_number, bfi_targ, bfi_self_c, itt_comp_c, target_condition) %>% 
   unique() %>% 
   na.omit() 
 
-mod_model1_bfi <- lmer(bfi_targ ~ bfi_self_c + 
+model1_bfi_randint <- lmer(bfi_targ ~ bfi_self_c + 
                      (1 | sub_id), 
                    data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
 
-tab_model(mod_model1_bfi,
+tab_model(model1_bfi_randint,
           digits = 3)
 ```
 
-### Exploring ICC
+##### Exploring ICC
 
 ```{r}
 #simple linear model to see if school association leads to too high of an ICC
@@ -127,6 +129,24 @@ icc_mod_res_bfi = anova(icc_mod_bfi)
 ICC_bfi = icc_mod_res_bfi$`Sum Sq`[1] / sum(icc_mod_res_bfi$`Sum Sq`)
 ICC_bfi #The ICC is tiny - is this why I am getting a singular analysis?
 ```
+
+##### More descriptives
+
+```{r}
+psych::describe(mod_1_data_bfi)
+```
+
+### Random Slopes/No random Intercept
+
+```{r}
+model1_bfi_randslopes <- lmer(bfi_targ ~ bfi_self_c*itt_comp_c + 
+                     (0 + bfi_self_c | sub_id), 
+                   data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
+
+tab_model(model1_bfi_randslopes,
+          digits = 3)
+```
+
 
 ## ELI
 
@@ -164,21 +184,23 @@ corrplot(cor_plot_predictors_eli,
 
 ### MLM
 
+#### Random intercept
+
 ```{r}
 mod_1_data_eli <- clean_data %>% 
   select(sub_id, eli_number, eli_targ, eli_self_c, itt_comp_c, target_condition) %>% 
   unique() %>% 
   na.omit() 
 
-mod_model1_eli <- lmer(eli_targ ~ eli_self_c + # itt does not work as a RE; model does not converge
+model1_eli_randint <- lmer(eli_targ ~ eli_self_c + # itt does not work as a RE; model does not converge
                      (eli_self_c | sub_id), 
                    data = mod_1_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
 
-tab_model(mod_model1_eli,
+tab_model(model1_eli_randint,
           digits = 3)
 ```
 
-### Exploring ICC
+#### Exploring ICC
 
 ```{r}
 #simple linear model to see if school association leads to too high of an ICC
@@ -189,6 +211,17 @@ icc_mod_res_eli = anova(icc_mod_eli)
 
 ICC_eli = icc_mod_res_eli$`Sum Sq`[1] / sum(icc_mod_res_eli$`Sum Sq`)
 ICC_eli #The ICC is tiny - is this why I am getting a singular analysis?
+```
+
+### Random Slopes/No random intercept
+
+```{r}
+model1_eli_randslopes <- lmer(eli_targ ~ eli_self_c*itt_comp_c + # itt does not work as a RE; model does not converge
+                     (0 + eli_self_c | sub_id), 
+                   data = mod_1_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
+
+tab_model(model1_eli_randslopes,
+          digits = 3)
 ```
 
 # Normality 
