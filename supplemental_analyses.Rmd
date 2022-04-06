@@ -98,3 +98,60 @@ corrplot(eli_pol_cor_plot,
 Responses on the ELI are not related to responses on the political orientation questions.
 
 Replicate analyses from Pilot using other measures in this doc
+
+# Exploring ICC
+
+## BFI
+
+```{r}
+mod_1_data_bfi <- clean_data %>% 
+  select(sub_id, bfi_number, bfi_targ, bfi_targ_pmc, bfi_self, bfi_self_pmc, itt_comp_gmc, 
+         target_condition, bfi_stereo) %>% 
+  unique() %>% 
+  na.omit() 
+
+
+#simple linear model to see if school association leads to too high of an ICC
+icc_mod_bfi <- lm(bfi_targ_pmc ~ bfi_self_pmc, data = mod_1_data_bfi)
+
+#getting anova results of simple linear model from earlier
+icc_mod_res_bfi = anova(icc_mod_bfi)
+
+ICC_bfi = icc_mod_res_bfi$`Sum Sq`[1] / sum(icc_mod_res_bfi$`Sum Sq`)
+ICC_bfi #The ICC is tiny - is this why I am getting a singular analysis?
+```
+
+## ELI
+
+```{r}
+mod_1_data_eli <- clean_data %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
+         target_condition) %>% 
+  unique() %>% 
+  na.omit() 
+
+#simple linear model to see if school association leads to too high of an ICC
+icc_mod_eli <- lm(eli_targ_pmc ~ eli_self_pmc, data = mod_1_data_eli)
+
+#getting anova results of simple linear model from earlier
+icc_mod_res_eli = anova(icc_mod_eli)
+
+ICC_eli = icc_mod_res_eli$`Sum Sq`[1] / sum(icc_mod_res_eli$`Sum Sq`)
+ICC_eli #The ICC is tiny - is this why I am getting a singular analysis?
+```
+
+
+Low ICC could be to blame.
+
+# Checking mean/sd of bfi_self responses per item
+
+```{r}
+bfi_wide_self <- clean_data %>% 
+  select(sub_id, bfi_number, bfi_self) %>% 
+  unique() %>% 
+  pivot_wider(names_from = bfi_number, values_from = bfi_self) %>% 
+  select(sub_id, "1":"19") %>% 
+  unique()
+
+psych::describe(bfi_wide_self)
+```
