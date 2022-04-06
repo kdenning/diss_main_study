@@ -370,9 +370,66 @@ ggplot(mod1_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
 
 # Model 2: Instructions on threat
 
+```{r}
+mod2_data <- clean_data %>% 
+  select(sub_id, itt_comp, analog_condition, target_condition) %>% 
+  unique()
+
+mod2 <- lm(itt_comp ~ analog_condition, data = mod2_data)
+summary(mod2)
+```
+
+# Model 2b: Instructions x Target Variable on Threat
+
+```{r}
+mod2b <- lm(itt_comp ~ analog_condition*target_condition, data = mod2_data)
+summary(mod2b)
+```
+
+*In the full mediational model, should I just run 2b? It is truly what I am interested in, as I predicted differences depending on condition.*
+
+# Models 3a and 3b: Mediated effect on projection without bootstrapping
+
+## BFI
+
+```{r}
+mod3_data_bfi <- clean_data %>% 
+  select(sub_id, bfi_self, bfi_self_pmc, bfi_targ, bfi_targ_pmc, itt_comp_gmc, 
+         target_condition, analog_condition) %>% 
+  unique()
+
+mod3a_bfi <- lmer(bfi_targ_pmc ~ bfi_self_pmc*analog_condition*target_condition +
+       (0 + bfi_self_pmc| sub_id), data = mod3_data_bfi)
+summary(mod3a_bfi)
+
+tab_model(mod3a_bfi)
+```
+
+Analog does not appear to have an affect, so threat will have nothing to affect...
+
+## ELI
+
+```{r}
+mod3_data_eli <- clean_data %>% 
+  select(sub_id, eli_self, eli_self_pmc, eli_targ, eli_targ_pmc, itt_comp_gmc, 
+         target_condition, analog_condition) %>% 
+  unique()
+
+mod3a_eli <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*target_condition +
+       (0 + eli_self_pmc | sub_id), data = mod3_data_eli)
+summary(mod3a_eli)
+
+tab_model(mod3a_eli)
+```
 
 
+Looks like I could do an LM since the random effect for eli_Self also has zero variance... Maybe a composite measure?
 
+Regardless analog also has no effect.
 
+# Bootstrapping
 
+## BFI
+
+## ELI
 
