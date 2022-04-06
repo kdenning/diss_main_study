@@ -60,6 +60,133 @@ https://quantdev.ssri.psu.edu/sites/qdev/files/ILD_Ch07_2017_Within-PersonMedati
 
 Multicolinearity across levels?
 
+# Exploring variance in intercepts
+
+## BFI 
+
+### With random intercept
+
+*Tested basic model because singularities kept occurring.*
+
+```{r}
+mod_1_data_bfi <- clean_data %>% 
+  select(sub_id, bfi_number, bfi_targ, bfi_targ_pmc, bfi_self, bfi_self_pmc, itt_comp_gmc, 
+         target_condition, bfi_stereo) %>% 
+  unique() %>% 
+  na.omit() 
+
+bfi_randint_test <- lmer(bfi_targ_pmc ~ bfi_self_pmc + 
+                     (1 | sub_id), 
+                   data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
+
+summary(bfi_randint_test)
+```
+
+The intercept is equal to zero (which makes sense with the centered variables), but the variance for the intercet is also equal to zero. This indicates the intercepts for the subjects are all the same, which is weird.
+
+### Checking individual intercepts/slopes
+
+*Uncentered variables*
+
+```{r}
+bfi_coeffs_per_sub  <- lmList(bfi_targ ~ 1 + bfi_self | sub_id, mod_1_data_bfi)
+bfi_coeffs_per_sub
+```
+
+*Person mean centered variables*
+
+```{r}
+bfi_coeffs_per_sub_c  <- lmList(bfi_targ_pmc ~ 1 + bfi_self_pmc | sub_id, mod_1_data_bfi)
+bfi_coeffs_per_sub_c
+```
+
+There are a range of intercepts - does not appear there should be zero variance.
+
+### Scatterplot of variables
+
+```{r}
+ggplot(mod_1_data_bfi, aes(bfi_self_pmc, bfi_targ_pmc)) +
+  geom_point()
+```
+
+### More descriptives
+
+```{r}
+psych::describe(mod_1_data_bfi)
+```
+
+Re-checking the descriptives of these particular variables and they look normal.
+
+## Random Slopes/No random Intercept
+
+I think the singularities had to do with zero variance of the random intercept. To account for this, I am removing the random intercept.
+
+```{r}
+bfi_randslopes_test <- lmer(bfi_targ_pmc ~ bfi_self_pmc + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
+
+summary(bfi_randslopes_test)
+```
+
+The estimate for the fixed effect for bfi_self remains the same (within rounding), regardless of whether the intercept is included in the model or not. This confirms what Bolker states in Github book: https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html
+
+## ELI
+
+## Random intercept
+
+```{r}
+mod_1_data_eli <- clean_data %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
+         target_condition, eli_targ, eli_self) %>% 
+  unique() %>% 
+  na.omit() 
+
+eli_randint_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
+                     (1 | sub_id), 
+                   data = mod_1_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
+
+summary(eli_randint_test)
+```
+
+Same issue as with the BFI.
+
+### Checking individual intercepts/slopes
+
+*Person mean centered variables*
+
+```{r}
+eli_coeffs_per_sub_c  <- lmList(eli_targ_pmc ~ 1 + eli_self_pmc | sub_id, mod_1_data_eli)
+eli_coeffs_per_sub_c
+```
+
+*Uncentered variables*
+
+```{r}
+eli_coeffs_per_sub  <- lmList(eli_targ ~ 1 + eli_self | sub_id, mod_1_data_eli)
+eli_coeffs_per_sub
+```
+
+As with the BFI, there seems to be variability in the intercepts, even though lmer is not finding it.
+
+### Scatterplot of variables
+
+```{r}
+ggplot(mod_1_data_eli, aes(eli_self_pmc, eli_targ_pmc)) +
+  geom_point()
+```
+
+## Random Slopes/No random intercept
+
+```{r}
+eli_randslopes_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
+                     (0 + eli_self_pmc | sub_id), 
+                   data = mod_1_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
+
+
+summary(eli_randslopes_test)
+```
+
 # Model 1: Threat on Counter-projection
 
 ## BFI
@@ -97,52 +224,6 @@ corrplot(cor_plot_predictors1,
 ```
 
 ### MLM Results
-
-#### With random intercept
-
-*Tested basic model without threat because singularities kept occurring.*
-
-```{r}
-mod_1_data_bfi <- clean_data %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc, 
-         target_condition) %>% 
-  unique() %>% 
-  na.omit() 
-
-model1_bfi_randint <- lmer(bfi_targ_pmc ~ bfi_self_pmc + 
-                     (1 | sub_id), 
-                   data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
-
-tab_model(model1_bfi_randint,
-          digits = 3)
-```
-
-##### Exploring ICC
-
-```{r}
-#simple linear model to see if school association leads to too high of an ICC
-icc_mod_bfi <- lm(bfi_targ_pmc ~ bfi_self_pmc, data = mod_1_data_bfi)
-
-#getting anova results of simple linear model from earlier
-icc_mod_res_bfi = anova(icc_mod_bfi)
-
-ICC_bfi = icc_mod_res_bfi$`Sum Sq`[1] / sum(icc_mod_res_bfi$`Sum Sq`)
-ICC_bfi #The ICC is tiny - is this why I am getting a singular analysis?
-```
-
-Low ICC could be to blame.
-
-##### More descriptives
-
-```{r}
-psych::describe(mod_1_data_bfi)
-```
-
-Re-checking the descriptives of these particular variables and they look normal.
-
-### Random Slopes/No random Intercept
-
-I think the singularities had to do with zero variance of the random intercept.
 
 ```{r}
 model1_bfi_randslopes <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc + 
@@ -232,45 +313,15 @@ corrplot(cor_plot_predictors_eli,
          addCoef.col = 'grey50')
 ```
 
-### MLM
-
-#### Random intercept
-
-```{r}
-mod_1_data_eli <- clean_data %>% 
-  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
-         target_condition) %>% 
-  unique() %>% 
-  na.omit() 
-
-model1_eli_randint <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
-                     (1 | sub_id), 
-                   data = mod_1_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
-
-tab_model(model1_eli_randint,
-          digits = 3)
-```
-
-#### Exploring ICC
-
-```{r}
-#simple linear model to see if school association leads to too high of an ICC
-icc_mod_eli <- lm(eli_targ_pmc ~ eli_self_pmc, data = mod_1_data_eli)
-
-#getting anova results of simple linear model from earlier
-icc_mod_res_eli = anova(icc_mod_eli)
-
-ICC_eli = icc_mod_res_eli$`Sum Sq`[1] / sum(icc_mod_res_eli$`Sum Sq`)
-ICC_eli #The ICC is tiny - is this why I am getting a singular analysis?
-```
-
-### Random Slopes/No random intercept
+### MLM Results
 
 ```{r}
 model1_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc | sub_id), 
                    data = mod_1_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
 
+
+summary(model1_eli_randslopes)
 tab_model(model1_eli_randslopes,
           digits = 3)
 ```
@@ -317,165 +368,9 @@ ggplot(mod1_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
        y = "ELI responses for target")
 ```
 
-# Model 1b: Added threat condition
+# Model 2: Instructions on threat
 
-*Technically not pre-registered or predicted, but consistent with other predictions about threat*
 
-## BFI
-
-### MLM Results
-
-### Random Slopes/No random Intercept
-
-```{r}
-model1b_bfi_randslopes <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc
-                               *target_condition + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
-
-tab_model(model1b_bfi_randslopes,
-          digits = 3)
-```
-
-Results indicate that the main effect of the target-level threat composite goes away when we include threat condition. There is a main effect of condition on projection for both contrasts. There is also an interaction of target condition and the the threat composite for the contrast comparing the warm target to the control.
-
-#### Simple Slopes
-
-##### Target condition main effect
-
-```{r}
-mod1b_simpslopes_bfi_me <- emtrends(model1b_bfi_randslopes, ~ target_condition,
-                              var ="bfi_self_pmc",
-                              at = list(target_condition = c("CONTROL", 
-                                                             "LOSS", 
-                                                             "WARM")))
-
-mod1b_simpslopes_bfi_me
-```
-
-##### Interaction
-
-```{r}
-targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
-
-mod1b_simpslopes_bfi_int <- emtrends(model1b_bfi_randslopes, ~ target_condition*itt_comp_gmc,
-                              var ="bfi_self_pmc",
-                              at = c(targ_levels, threat_levels))
-
-mod1b_simpslopes_bfi_int
-```
-
-#### Visualization
-
-```{r}
-mod1b_bfi_int <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
-                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
-                                        target_condition = c("CONTROL",
-                                                             "WARM",
-                                                             "LOSS")),
-                         mod = model1b_bfi_randslopes)
-
-mod1b_bfi_int <- as.data.frame(mod1b_bfi_int)
-mod1b_bfi_int$itt_comp_gmc <- as.factor(mod1b_bfi_int$itt_comp_gmc)
-mod1b_bfi_int$target_condition <- as.factor(mod1b_bfi_int$target_condition)
-
-threat_labels <- c("-1.07" = "Low target \n level threat",
-                   "0" = "Average target \n level threat",
-                   "1.07" = "High target \n level threat")
-
-ggplot(mod1b_bfi_int, aes(bfi_self_pmc, fit, group = target_condition)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = FALSE,
-                colour = "black", 
-                aes(linetype = target_condition)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  facet_wrap(~itt_comp_gmc,
-             labeller = labeller(itt_comp_gmc = threat_labels)) +
-  scale_linetype_manual("Target condition",
-                        breaks = c("CONTROL", "WARM", "LOSS"), 
-                       labels = c("Control",
-                                  "Warm",
-                                  "Loss"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(title = "Projection by target-level threat and target condition",
-         subtitle = "Using the BFI",
-       x = "BFI responses for self",
-       y = "BFI responses for target")
-```
-
-## ELI
-
-### MLM Results
-
-### Random Slopes/No random Intercept
-
-```{r}
-model1b_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc
-                               *target_condition + 
-                     (0 + eli_self_pmc | sub_id), 
-                   data = mod_1_data_eli) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
-
-tab_model(model1b_eli_randslopes,
-          digits = 3)
-```
-
-Similiar to the BFI, but no interaction.
-
-#### Simple Slopes
-
-##### Target condition main effect
-
-```{r}
-mod1b_simpslopes_eli_me <- emtrends(model1b_eli_randslopes, ~ target_condition,
-                              var ="eli_self_pmc",
-                              at = list(target_condition = c("CONTROL", 
-                                                             "LOSS", 
-                                                             "WARM")))
-
-mod1b_simpslopes_bfi_me
-```
-
-#### Visualization
-
-```{r}
-mod1b_eli <- effect("eli_self_pmc:target_condition",
-                         xlevels = list(target_condition = c("CONTROL",
-                                                             "WARM",
-                                                             "LOSS")),
-                         mod = model1b_eli_randslopes)
-
-mod1b_eli <- as.data.frame(mod1b_eli)
-mod1b_eli$target_condition <- as.factor(mod1b_eli$target_condition)
-
-ggplot(mod1b_eli, aes(eli_self_pmc, fit, group = target_condition)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = FALSE,
-                colour = "black", 
-                aes(linetype = target_condition)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target condition",
-                        breaks = c("CONTROL", "WARM", "LOSS"), 
-                       labels = c("Control",
-                                  "Warm",
-                                  "Loss"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(title = "Projection by target condition",
-         subtitle = "Using the ELI; Accounting for threat composite",
-       x = "ELI responses for self",
-       y = "ELI responses for target")
-```
-
-# Model 2
-
-# VIF?
 
 
 
