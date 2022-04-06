@@ -26,6 +26,19 @@ get_wrangled <- function(wide_data){
   # Wide to long ---------------------------------------------------------------
   
   data_long <- wide_data %>% 
+    mutate_at(c("bfi_self_1", "bfi_self_7", "bfi_self_3", "bfi_self_8",
+                "bfi_self_14", "bfi_self_10", "bfi_self_17", "bfi_self_18",
+                "bfi_ster_1", "bfi_ster_7", "bfi_ster_3",
+                "bfi_ster_8", "bfi_ster_14", "bfi_ster_10",
+                "bfi_ster_17", "bfi_ster_18", "bfi_targ_1",
+                "bfi_targ_7", "bfi_targ_3", "bfi_targ_8",
+                "bfi_targ_14", "bfi_targ_10", "bfi_targ_17",
+                "bfi_targ_18"), 
+              list(~dplyr::recode(., `1`= 5, 
+                                  `2`= 4, 
+                                  `3` = 3, 
+                                  `4` = 2, 
+                                  `5` = 1))) %>% 
   pivot_longer(c(bfi_self_1:bfi_self_19,
                  bfi_ster_1:bfi_ster_19,
                  bfi_targ_1:bfi_targ_19),
