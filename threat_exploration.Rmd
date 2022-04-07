@@ -1,0 +1,463 @@
+---
+title: "threat exploration"
+output: 
+    html_document:
+      code_download: TRUE
+      toc: TRUE
+      toc_float:
+        collapsed: FALSE
+      toc_depth: 1
+      code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r data prep, echo = FALSE, warning = FALSE, message = FALSE, error = FALSE}
+# Loading packages
+library(psych)
+library(lme4)
+library(nlme)
+library(sjPlot)
+library(effects)
+library(magrittr) # part of the tidyverse but must be read in on its own
+library(parameters)
+library(dplyr)
+library(tidyr)
+library(rio)
+library(ggplot2)
+library(emmeans)
+library(corrplot)
+
+# Functions to clean document, get data from wide to long format
+source("functions/Cleaning.R")
+
+# Setting global chunk options
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+options(scipen = 999)
+
+# Importing data
+wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
+
+# Cleaning data using functions
+long_data <- get_wrangled(wide_data)
+
+clean_data <- remove_participants(long_data)
+
+clean_data %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
+```
+
+# Other measures predicted by target threat
+
+```{r}
+data_threat_lm <- clean_data %>% 
+  select(sub_id, target_condition, itt_comp, explicit_targ, explicit_group,
+         distance_coffee, distance_town) %>% 
+  unique()
+```
+
+## Distance - coffee
+
+```{r}
+distance_coffee_lm <- lm(distance_coffee ~ target_condition, data = data_threat_lm)
+summary(distance_coffee_lm)
+anova(distance_coffee_lm)
+```
+
+## Distance - town
+
+```{r}
+distance_town_lm <- lm(distance_town ~ target_condition, data = data_threat_lm)
+summary(distance_town_lm)
+anova(distance_town_lm)
+```
+
+## Explicit - group
+
+```{r}
+explicit_group_lm <- lm(explicit_group ~ target_condition, data = data_threat_lm)
+summary(explicit_group_lm)
+anova(explicit_group_lm)
+```
+
+Not sig different for explicit threat for the group; only one not sig, but also only measure not related to Jen in any way
+
+## Explicit - target
+
+```{r}
+explicit_targ_lm <- lm(explicit_targ ~ target_condition, data = data_threat_lm)
+summary(explicit_targ_lm)
+anova(explicit_targ_lm)
+```
+
+# BFI
+
+## Composite on counter-projection
+
+*This analysis was done in other steps of the pre-registered analysis and the location is stated for each below. Some models were copied here for model comparisons. This also applies to the ELI.*
+
+### Composite alone
+
+```{r}
+data_bfi <- clean_data %>% 
+  select(sub_id, bfi_number, bfi_targ, bfi_targ_pmc, bfi_self, bfi_self_pmc,
+         itt_comp_gmc, target_condition, bfi_stereo, bfi_stereo_pmc, 
+         distance_coffee, distance_town, explicit_targ, explicit_group) %>% 
+  unique() %>% 
+  na.omit() 
+
+model1_bfi_randslopes <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
+
+tab_model(model1_bfi_randslopes,
+          digits = 3)
+```
+
+### Target condition alone
+
+```{r}
+bfi_targ <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_targ)
+
+tab_model(bfi_targ)
+```
+
+### Target condition x composite
+
+```{r}
+bfi_targ_comp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = mod_1_data_bfi) 
+
+summary(bfi_targ_comp)
+
+tab_model(bfi_targ_comp,
+          digits = 3)
+```
+
+Results indicate that the main effect of the target-level threat composite goes away when we include threat condition. There is a main effect of condition on projection for both contrasts. There is also an interaction of target condition and the the threat composite for the contrast comparing the warm target to the control.
+
+#### Simple Slopes
+
+##### Target condition main effect
+
+```{r}
+bfi_targ_comp_simpslopes_me <- emtrends(bfi_targ_comp, ~ target_condition,
+                              var ="bfi_self_pmc",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM")))
+
+bfi_targ_comp_simpslopes_me
+```
+
+##### Interaction
+
+```{r}
+targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
+
+bfi_targ_comp_simpslopes_int <- emtrends(bfi_targ_comp ~ target_condition*itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = c(targ_levels, threat_levels))
+
+bfi_targ_comp_simpslopes_int
+```
+
+#### Visualization
+
+```{r}
+bfi_targ_comp_int_viz <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = bfi_targ_comp)
+
+bfi_targ_comp_int_viz <- as.data.frame(bfi_targ_comp_int_viz)
+bfi_targ_comp_int_viz$itt_comp_gmc <- as.factor(bfi_targ_comp_int_viz$itt_comp_gmc)
+bfi_targ_comp_int_viz$target_condition <- as.factor(bfi_targ_comp_int_viz$target_condition)
+
+threat_labels <- c("-1.07" = "Low target \n level threat",
+                   "0" = "Average target \n level threat",
+                   "1.07" = "High target \n level threat")
+
+ggplot(bfi_targ_comp_int_viz, aes(bfi_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~itt_comp_gmc,
+             labeller = labeller(itt_comp_gmc = threat_labels)) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Control",
+                                  "Warm",
+                                  "Loss"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat and target condition",
+         subtitle = "Using the BFI",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+
+## Distance
+
+### Coffee alone
+
+```{r}
+bfi_coffee <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_coffee)
+
+tab_model(bfi_coffee)
+```
+
+#### Model comparison with threat composite
+
+```{r}
+anova(model1_bfi_randslopes, bfi_coffee) 
+```
+
+Though distance in the coffee shop does interact, the model fit is better for the threat composite using the ITT due to smaller values on th eAIC, BIC, and deviance. However, they are not significantly different on the chi-square.
+
+### Coffee x target condition
+
+```{r}
+bfi_coffee2 <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee*target_condition + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_coffee2)
+
+tab_model(bfi_coffee2)
+```
+
+No interaction 
+
+### Town alone
+
+```{r}
+bfi_town <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_town + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_town)
+
+tab_model(bfi_town)
+```
+
+#### Model comparison with threat composite
+
+```{r}
+anova(model1_bfi_randslopes, bfi_town) 
+```
+
+```{r}
+anova(bfi_town, bfi_coffee) 
+```
+
+The threat composite has the better fit than the town measure, and the coffee measure has a better fit than the town measure as well.
+
+### Town x target condition
+
+```{r}
+bfi_town2 <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_town*target_condition + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_town2)
+
+tab_model(bfi_town2)
+```
+
+No interaction and the effect of town actually goes away after accounting for target condition. No surprising since the conditions were manipulated to be different based on threat
+
+## Explicit threat
+
+### Group-level
+
+```{r}
+bfi_explicit_g <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_group + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_explicit_g)
+
+tab_model(bfi_explicit_g)
+```
+
+Though it does not predict conditions, group threat still leads to counter-projection on its own.
+
+#### Model comparison with threat composite
+
+```{r}
+anova(model1_bfi_randslopes, bfi_explicit_g) 
+```
+
+However, it has less fit than the composite measure related to the target.
+
+### Group x target condition
+
+```{r}
+bfi_explicit_gc <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_group*target_condition + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_explicit_gc)
+
+tab_model(bfi_explicit_gc)
+```
+
+Not suprisingly, there is not interaction with condition. Also, when threat is accounted for at the target-level through target condition, the main effect of explicit threat at the group-level goes away.
+
+### Target-level
+
+```{r}
+bfi_explicit_t <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_targ + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_explicit_t)
+
+tab_model(bfi_explicit_t)
+```
+
+#### Model comparison with threat composite
+
+##### With the composite
+
+```{r}
+anova(model1_bfi_randslopes, bfi_explicit_t) 
+```
+
+These models are near identical in all criteria - further supporting my previous belief that my scale is definitely measuring target-level threat. Plus, these are the best fitting of the threat scales we used in explaining counter-projection.
+
+##### With the explicit group-level
+
+```{r}
+anova(bfi_explicit_g, bfi_explicit_t) 
+```
+
+Target-level is a better fit than group-level.
+
+### Target-level x target condition
+
+```{r}
+bfi_explicit_tc <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_targ*target_condition + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_explicit_tc)
+
+tab_model(bfi_explicit_tc)
+```
+
+Unlike with the composite measure, the explicit targ measure remains significant, but not all the the contrasts for the main effect of target condition are significant.
+
+# ELI
+
+## Composite on counter-projection
+
+### Composite alone
+
+### Target condition alone
+
+
+
+```{r}
+bfi_1c <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_1c)
+
+tab_model(bfi_1c)
+```
+
+### ELI
+
+```{r}
+data_eli <- clean_data %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
+         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
+         distance_coffee, distance_town, explicit_targ, explicit_group) %>% 
+  unique() %>% 
+  na.omit() 
+
+eli_1c <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition +
+                     (0 + eli_self_pmc | sub_id), 
+                   data = data_eli) 
+
+summary(eli_1c)
+
+tab_model(eli_1c)
+```
+
+## Target condition x composite
+
+This is *Model 1b* in other_pre_reg_analyses.Rmd
+
+## Target condition predicting composite
+
+This is pilot_replication.Rmd 
+
+# Distance
+
+## Coffee alone
+
+### BFI
+
+```{r}
+bfi_coffee <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee + 
+                     (0 + bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_coffee)
+
+tab_model(bfi_coffee)
+
+anova(model1_bfi_randslopes, bfi_coffee) 
+```
+
+Though distance in the coffee shop does interact, the model fit is better for the threat composite using the ITT due to smaller values on th eAIC, BIC, and deviance. However, they are not significantly different on the chi-square.
+
+### ELI
+
+```{r}
+eli_1c <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition +
+                     (0 + eli_self_pmc | sub_id), 
+                   data = data_eli) 
+
+summary(eli_1c)
+
+tab_model(eli_1c)
+
+
+```
+
+## Coffee x target condition
+
+### BFI
+
+### ELI
+
+## Town
+
+### BFI
+
