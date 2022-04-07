@@ -99,6 +99,63 @@ Responses on the ELI are not related to responses on the political orientation q
 
 Replicate analyses from Pilot using other measures in this doc
 
+# Exploring structure of ELI
+
+## Self
+
+```{r}
+eli_wide_self <- clean_data %>% 
+  select(sub_id, eli_number, eli_self) %>% 
+  unique() %>% 
+  pivot_wider(names_from = eli_number, values_from = eli_self) %>% 
+  select(sub_id, "1":"10") %>% 
+  unique() %>% 
+  select(-sub_id)
+
+eli_self_matrix_cor <- cor(eli_wide_self)
+
+eli_self_cor_plot <- corrplot(eli_self_matrix_cor, method = "number")
+```
+
+Pretty uncorrelated, makes them appear orthogonal
+
+## Target
+
+```{r}
+eli_wide_targ <- clean_data %>% 
+  select(sub_id, eli_number, eli_targ) %>% 
+  unique() %>% 
+  pivot_wider(names_from = eli_number, values_from = eli_targ) %>% 
+  select(sub_id, "1":"10") %>% 
+  unique() %>% 
+  select(-sub_id)
+
+eli_targ_matrix_targ <- cor(eli_wide_targ)
+
+eli_targ_cor_plot <- corrplot(eli_targ_matrix_targ, method = "number")
+```
+
+The target has some slightly higher correlations than the self, but highestbeing .31, so still not very high...
+
+## Stereo
+
+```{r}
+eli_wide_stereo <- clean_data %>% 
+  select(sub_id, eli_number, eli_stereo) %>% 
+  unique() %>% 
+  pivot_wider(names_from = eli_number, values_from = eli_stereo) %>% 
+  select(sub_id, "1":"10") %>% 
+  unique() %>% 
+  select(-sub_id)
+
+eli_stereo_matrix_stereo <- cor(eli_wide_stereo)
+
+eli_stereo_cor_plot <- corrplot(eli_stereo_matrix_stereo, method = "number")
+
+```
+
+Again, higher correlations than for the self, but still only .35 as the highest.
+
 # Exploring ICC
 
 ## BFI
