@@ -390,7 +390,9 @@ summary(mod2b)
 
 # Models 3a and 3b: Mediated effect on projection without bootstrapping
 
-## BFI
+## 3a: Target by condition on projection 
+
+### BFI 
 
 ```{r}
 mod3_data_bfi <- clean_data %>% 
@@ -407,7 +409,7 @@ tab_model(mod3a_bfi)
 
 Analog does not appear to have an affect, so threat will have nothing to affect...
 
-## ELI
+### ELI
 
 ```{r}
 mod3_data_eli <- clean_data %>% 
@@ -422,6 +424,31 @@ summary(mod3a_eli)
 tab_model(mod3a_eli)
 ```
 
+## 3b: Condition by threat composite on projection
+
+### BFI 
+
+```{r}
+
+mod3b_bfi <- lmer(bfi_targ_pmc ~ bfi_self_pmc*analog_condition*target_condition*itt_comp_gmc +
+       (0 + bfi_self_pmc| sub_id), data = mod3_data_bfi)
+summary(mod3b_bfi)
+
+tab_model(mod3b_bfi)
+```
+
+
+### ELI
+
+```{r}
+
+mod3b_eli <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*target_condition*itt_comp_gmc +
+       (0 + eli_self_pmc | sub_id), data = mod3_data_eli)
+summary(mod3b_eli)
+
+tab_model(mod3b_eli)
+```
+
 
 Looks like I could do an LM since the random effect for eli_Self also has zero variance... Maybe a composite measure?
 
@@ -429,7 +456,4 @@ Regardless analog also has no effect.
 
 # Bootstrapping
 
-## BFI
-
-## ELI
-
+Is there a point since I was only interested in the mediational effect explaining the effect of analogous perspective taking?
