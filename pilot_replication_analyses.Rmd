@@ -42,7 +42,9 @@ wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 # Cleaning data using functions
 long_data <- get_wrangled(wide_data)
 
-clean_data <- remove_participants(long_data)
+clean_vars <- get_vars_cleaned(long_data)
+
+clean_data <- remove_participants(clean_vars)
 ```
 
 # Confirming Target Threat Factor {.tabset .tabset-fade .tabset-pills}

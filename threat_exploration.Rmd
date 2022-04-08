@@ -44,7 +44,9 @@ wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 # Cleaning data using functions
 long_data <- get_wrangled(wide_data)
 
-clean_data <- remove_participants(long_data)
+clean_vars <- get_vars_cleaned(long_data)
+
+clean_data <- remove_participants(clean_vars)
 
 clean_data %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),

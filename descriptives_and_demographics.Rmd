@@ -43,7 +43,9 @@ wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 # Cleaning data using functions
 long_data <- get_wrangled(wide_data)
 
-clean_data <- remove_participants(long_data)
+clean_vars <- get_vars_cleaned(long_data)
+
+clean_data <- remove_participants(clean_vars)
 ```
 
 # Descriptives {.tabset .tabset-fade .tabset-pills}
@@ -114,6 +116,16 @@ Left-skewed... same as pilot.
 
 ```{r}
 hist(clean_data$bfi_self)
+
+# The person average seems pretty variable, I'm not sure what is going on; but maybe it is too even?
+clean_data %>% 
+  group_by(sub_id, bfi_self) %>% 
+  mutate(mean = mean(bfi_self)) %>%
+  ungroup() %>% 
+  select(sub_id, mean) %>% 
+  unique() %>% 
+  group_by(mean) %>% 
+  count()
 ```
 
 Trending toward bimodal for self, but normal for self and target.

@@ -44,7 +44,9 @@ wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 # Cleaning data using functions
 long_data <- get_wrangled(wide_data)
 
-clean_data <- remove_participants(long_data)
+clean_vars <- get_vars_cleaned(long_data)
+
+clean_data <- remove_participants(clean_vars)
 
 clean_data %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
@@ -59,93 +61,6 @@ clean_data %<>%
 
 ### MLM Results
 
-### Random Slopes/No random Intercept
-
-```{r}
-mod_1_data_bfi <- clean_data %>% 
-  select(sub_id, bfi_number, bfi_targ, bfi_targ_pmc, bfi_self, bfi_self_pmc, itt_comp_gmc, 
-         target_condition, bfi_stereo) %>% 
-  unique() %>% 
-  na.omit() 
-
-model1b_bfi_randslopes <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc
-                               *target_condition + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
-
-tab_model(model1b_bfi_randslopes,
-          digits = 3)
-```
-
-Results indicate that the main effect of the target-level threat composite goes away when we include threat condition. There is a main effect of condition on projection for both contrasts. There is also an interaction of target condition and the the threat composite for the contrast comparing the warm target to the control.
-
-#### Simple Slopes
-
-##### Target condition main effect
-
-```{r}
-mod1b_simpslopes_bfi_me <- emtrends(model1b_bfi_randslopes, ~ target_condition,
-                              var ="bfi_self_pmc",
-                              at = list(target_condition = c("CONTROL", 
-                                                             "LOSS", 
-                                                             "WARM")))
-
-mod1b_simpslopes_bfi_me
-```
-
-##### Interaction
-
-```{r}
-targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
-
-mod1b_simpslopes_bfi_int <- emtrends(model1b_bfi_randslopes, ~ target_condition*itt_comp_gmc,
-                              var ="bfi_self_pmc",
-                              at = c(targ_levels, threat_levels))
-
-mod1b_simpslopes_bfi_int
-```
-
-#### Visualization
-
-```{r}
-mod1b_bfi_int <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
-                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
-                                        target_condition = c("CONTROL",
-                                                             "WARM",
-                                                             "LOSS")),
-                         mod = model1b_bfi_randslopes)
-
-mod1b_bfi_int <- as.data.frame(mod1b_bfi_int)
-mod1b_bfi_int$itt_comp_gmc <- as.factor(mod1b_bfi_int$itt_comp_gmc)
-mod1b_bfi_int$target_condition <- as.factor(mod1b_bfi_int$target_condition)
-
-threat_labels <- c("-1.07" = "Low target \n level threat",
-                   "0" = "Average target \n level threat",
-                   "1.07" = "High target \n level threat")
-
-ggplot(mod1b_bfi_int, aes(bfi_self_pmc, fit, group = target_condition)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = FALSE,
-                colour = "black", 
-                aes(linetype = target_condition)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  facet_wrap(~itt_comp_gmc,
-             labeller = labeller(itt_comp_gmc = threat_labels)) +
-  scale_linetype_manual("Target condition",
-                        breaks = c("CONTROL", "WARM", "LOSS"), 
-                       labels = c("Control",
-                                  "Warm",
-                                  "Loss"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(title = "Projection by target-level threat and target condition",
-         subtitle = "Using the BFI",
-       x = "BFI responses for self",
-       y = "BFI responses for target")
-```
 
 ## ELI
 
