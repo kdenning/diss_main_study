@@ -1,0 +1,187 @@
+---
+title: "Other Pre-Registered Analyses"
+output: 
+    html_document:
+      code_download: TRUE
+      toc: TRUE
+      toc_float:
+        collapsed: FALSE
+      toc_depth: 1
+      code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r data prep, echo = FALSE, warning = FALSE, message = FALSE, error = FALSE}
+# Loading packages
+library(psych)
+library(lme4)
+library(nlme)
+library(sjPlot)
+library(effects)
+library(magrittr) # part of the tidyverse but must be read in on its own
+library(parameters)
+library(dplyr)
+library(tidyr)
+library(rio)
+library(ggplot2)
+library(emmeans)
+library(corrplot)
+
+# Functions to clean document, get data from wide to long format
+source("functions/Cleaning.R")
+
+# Setting global chunk options
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+options(scipen = 999)
+
+# Importing data
+wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
+
+# Cleaning data using functions
+long_data_bfi <- get_wrangled_bfi(wide_data)
+long_data_eli <- get_wrangled_eli(wide_data)
+
+clean_vars_bfi <- get_vars_cleaned(long_data_bfi)
+clean_vars_eli <- get_vars_cleaned(long_data_eli)
+
+clean_data_bfi <- remove_participants(clean_vars_bfi)
+clean_data_eli <- remove_participants(clean_vars_eli)
+
+clean_data_bfi %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
+
+clean_data_eli %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
+```
+
+# Stereotyping
+
+## BFI 
+
+```{r}
+data_bfi <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
+         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc) %>% 
+  unique() %>% 
+  na.omit() 
+
+bfi_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = data_bfi)
+summary(bfi_stereo)
+tab_model(bfi_stereo)
+
+```
+
+Both counter-projection and stereotyping have unique effects and interact with target-level threat.
+
+### Simple Slopes
+
+```{r}
+threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
+simpslopes_bfi_stereo1 <- emtrends(bfi_stereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+simpslopes_bfi_stereo1
+```
+
+With residual counter-projection, people do not project nor counter-project when they report higher than average threat. Otherwise, people project normally. Though slightly different from predicted, this demonstrates that threat does reduce projection after accounting for stereotyping with those who perceive high threat, but not others. However, there is not a residual effect of counter-projection with the BFI - which I believe is consistent with PSPB.
+
+Is this consistent with PSPB?
+
+### Visualization
+
+```{r}
+bfi_stereo1 <- effect("bfi_self_pmc:itt_comp_gmc",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07)),
+                         mod =bfi_stereo)
+
+bfi_stereo1 <- as.data.frame(bfi_stereo1)
+bfi_stereo1$itt_comp_gmc <- as.factor(bfi_stereo1$itt_comp_gmc)
+
+ggplot(bfi_stereo1, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target-level \nthreat",
+                        breaks = c(-1.07, 0, 1.07), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Residual projection by target-level threat",
+         subtitle = "After accounting for stereotyping; Using the BFI",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+## ELI
+
+```{r}
+data_eli <- clean_data_eli %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
+         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc) %>% 
+  unique() %>% 
+  na.omit() 
+
+eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc +
+                     (0 + eli_self_pmc + eli_stereo_pmc | sub_id), data = data_eli)
+summary(eli_stereo)
+tab_model(eli_stereo)
+```
+
+### Simple Slopes
+
+```{r}
+simpslopes_eli_stereo1 <- emtrends(eli_stereo, ~ itt_comp_gmc,
+                              var ="eli_self_pmc",
+                              at = threat_levels)
+
+simpslopes_eli_stereo1
+```
+
+Replicating PSPB, even after accounting for stereotyping, we continue to see counter-projection with the ELI. As predicted, it is those with high-threat who continue to have residual counter-projection after including stereotyping in the model. Those with average or low threat continue to positively project. 
+
+### Visualization
+
+```{r}
+eli_stereo1 <- effect("eli_self_pmc:itt_comp_gmc",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07)),
+                         mod = eli_stereo)
+
+eli_stereo1 <- as.data.frame(eli_stereo1)
+eli_stereo1$itt_comp_gmc <- as.factor(eli_stereo1$itt_comp_gmc)
+
+ggplot(eli_stereo1, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target-level \nthreat",
+                        breaks = c(-1.07, 0, 1.07), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Residual projection by target-level threat",
+         subtitle = "After accounting for stereotyping; Using the ELI",
+       x = "ELI responses for self",
+       y = "ELI responses for target")
+```
