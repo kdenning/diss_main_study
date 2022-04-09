@@ -374,25 +374,7 @@ Unlike with the composite measure, the explicit targ measure remains significant
 
 # ELI
 
-## Composite on counter-projection
-
-### Composite alone
-
-### Target condition alone
-
-
-
-```{r}
-bfi_1c <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
-
-summary(bfi_1c)
-
-tab_model(bfi_1c)
-```
-
-### ELI
+## Target condition only
 
 ```{r}
 data_eli <- clean_data %>% 
@@ -411,55 +393,66 @@ summary(eli_1c)
 tab_model(eli_1c)
 ```
 
-## Target condition x composite
-
-This is *Model 1b* in other_pre_reg_analyses.Rmd
-
-## Target condition predicting composite
-
-This is pilot_replication.Rmd 
-
-# Distance
-
-## Coffee alone
-
-### BFI
+## Condition and threat
 
 ```{r}
-bfi_coffee <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
 
-summary(bfi_coffee)
-
-tab_model(bfi_coffee)
-
-anova(model1_bfi_randslopes, bfi_coffee) 
-```
-
-Though distance in the coffee shop does interact, the model fit is better for the threat composite using the ITT due to smaller values on th eAIC, BIC, and deviance. However, they are not significantly different on the chi-square.
-
-### ELI
-
-```{r}
-eli_1c <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition +
+model1b_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc
+                               *target_condition + 
                      (0 + eli_self_pmc | sub_id), 
-                   data = data_eli) 
+                   data = data_eli) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
 
-summary(eli_1c)
-
-tab_model(eli_1c)
-
-
+tab_model(model1b_eli_randslopes,
+          digits = 3)
 ```
 
-## Coffee x target condition
+Similiar to the BFI, but no interaction.
 
-### BFI
+#### Simple Slopes
 
-### ELI
+##### Target condition main effect
 
-## Town
+```{r}
+mod1b_simpslopes_eli_me <- emtrends(model1b_eli_randslopes, ~ target_condition,
+                              var ="eli_self_pmc",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM")))
 
-### BFI
+mod1b_simpslopes_bfi_me
+```
+
+#### Visualization
+
+```{r}
+mod1b_eli <- effect("eli_self_pmc:target_condition",
+                         xlevels = list(target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = model1b_eli_randslopes)
+
+mod1b_eli <- as.data.frame(mod1b_eli)
+mod1b_eli$target_condition <- as.factor(mod1b_eli$target_condition)
+
+ggplot(mod1b_eli, aes(eli_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Control",
+                                  "Warm",
+                                  "Loss"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target condition",
+         subtitle = "Using the ELI; Accounting for threat composite",
+       x = "ELI responses for self",
+       y = "ELI responses for target")
+```
 
