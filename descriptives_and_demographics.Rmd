@@ -52,8 +52,18 @@ clean_data <- remove_participants(clean_vars)
 
 ## Overall
 
+### BFI df
+
 ```{r}
-clean_data %>% 
+clean_data_bfi %>% 
+  select(where(is.numeric)) %>% 
+  psych::describe()
+```
+
+### ELI df
+
+```{r}
+clean_data_eli %>% 
   select(where(is.numeric)) %>% 
   psych::describe()
 ```
@@ -65,7 +75,7 @@ clean_data %>%
 #### Symbolic
 
 ```{r}
-hist(clean_data$symbolic_q)
+hist(clean_data_bfi$symbolic_q)
 ```
 
 Almost flat - if there were more response options, it may have been bi-modal. Highest point is 4 and then 1 and 3 are close to the same. Not the same as in the Pilot... the CFA may not replicate.
@@ -73,7 +83,7 @@ Almost flat - if there were more response options, it may have been bi-modal. Hi
 #### Realistic
 
 ```{r}
-hist(clean_data$realistic_q)
+hist(clean_data_bfi$realistic_q)
 ```
 
 Left-skewed, more similar to the Pilot than symbolic. Not concerning skew.
@@ -81,7 +91,7 @@ Left-skewed, more similar to the Pilot than symbolic. Not concerning skew.
 #### Distance - coffee
 
 ```{r}
-hist(clean_data$distance_coffee)
+hist(clean_data_bfi$distance_coffee)
 ```
 
 Left-Skewed but with some respones at 1 and 2, should be robust enough in GLM
@@ -89,7 +99,7 @@ Left-Skewed but with some respones at 1 and 2, should be robust enough in GLM
 #### Distance - town
 
 ```{r}
-hist(clean_data$distance_town)
+hist(clean_data_bfi$distance_town)
 ```
 
 Right-skewed, but really that most people responded to "2" and then it flattens out. Not a normal curve but not missing responses, should be robust enough.
@@ -97,7 +107,7 @@ Right-skewed, but really that most people responded to "2" and then it flattens 
 #### Explicit - target
 
 ```{r}
-hist(clean_data$explicit_targ)
+hist(clean_data_bfi$explicit_targ)
 ```
 
 Right-skewed... Different than pilot, but pilot was more flat, with slightly higher 1s and 2s (may have looked like this with more participants).
@@ -105,7 +115,7 @@ Right-skewed... Different than pilot, but pilot was more flat, with slightly hig
 #### Explicit - group 
 
 ```{r}
-hist(clean_data$explicit_group)
+hist(clean_data_bfi$explicit_group)
 ```
 
 Left-skewed... same as pilot.
@@ -115,17 +125,7 @@ Left-skewed... same as pilot.
 #### Self
 
 ```{r}
-hist(clean_data$bfi_self)
-
-# The person average seems pretty variable, I'm not sure what is going on; but maybe it is too even?
-clean_data %>% 
-  group_by(sub_id, bfi_self) %>% 
-  mutate(mean = mean(bfi_self)) %>%
-  ungroup() %>% 
-  select(sub_id, mean) %>% 
-  unique() %>% 
-  group_by(mean) %>% 
-  count()
+hist(clean_data_bfi$bfi_self)
 ```
 
 Trending toward bimodal for self, but normal for self and target.
@@ -133,13 +133,13 @@ Trending toward bimodal for self, but normal for self and target.
 #### Stereo
 
 ```{r}
-hist(clean_data$bfi_stereo)
+hist(clean_data_bfi$bfi_stereo)
 ```
 
 #### Target
 
 ```{r}
-hist(clean_data$bfi_targ)
+hist(clean_data_bfi$bfi_targ)
 ```
 
 ### ELI
@@ -147,7 +147,7 @@ hist(clean_data$bfi_targ)
 #### Self
 
 ```{r}
-hist(clean_data$eli_self)
+hist(clean_data_bfi$eli_self)
 ```
 
 Skewed for the self but normal for stereo and targ - interesting!
@@ -155,13 +155,13 @@ Skewed for the self but normal for stereo and targ - interesting!
 #### Stereo
 
 ```{r}
-hist(clean_data$eli_stereo)
+hist(clean_data_eli$eli_stereo)
 ```
 
 #### Targ
 
 ```{r}
-hist(clean_data$eli_targ)
+hist(clean_data_eli$eli_targ)
 ```
 
 ### Political Orientation
@@ -169,7 +169,7 @@ hist(clean_data$eli_targ)
 #### Overall
 
 ```{r}
-hist(clean_data$pol_orient_1)
+hist(clean_data_bfi$pol_orient_1)
 ````
 
 Right/positive-skewed, more severe than in the pilot (missing option 5). Would need to transform if used as a predictor.
@@ -177,7 +177,7 @@ Right/positive-skewed, more severe than in the pilot (missing option 5). Would n
 #### Social 
 
 ```{r}
-hist(clean_data$pol_orient_2)
+hist(clean_data_bfi$pol_orient_2)
 ````
 
 Right/positive-skewed, more severe than the pilot (also missing) responses to 5. Would need to transform this variable.
@@ -185,7 +185,7 @@ Right/positive-skewed, more severe than the pilot (also missing) responses to 5.
 #### Economic
 
 ```{r}
-hist(clean_data$pol_orient_3)
+hist(clean_data_bfi$pol_orient_3)
 ````
 
 Some 5 responses but minimal, very skewed, should still transform.
@@ -197,19 +197,19 @@ Some 5 responses but minimal, very skewed, should still transform.
 #### Self
 
 ```{r}
-get_outlier_number(clean_data$bfi_self)
+get_outlier_number(clean_data_bfi$bfi_self)
 ```
 
 #### Stereo
 
 ```{r}
-get_outlier_number(clean_data$bfi_stereo)
+get_outlier_number(clean_data_bfi$bfi_stereo)
 ```
 
 #### Target
 
 ```{r}
-get_outlier_number(clean_data$bfi_targ)
+get_outlier_number(clean_data_bfi$bfi_targ)
 ```
 
 ### ELI
@@ -217,19 +217,19 @@ get_outlier_number(clean_data$bfi_targ)
 #### Self
 
 ```{r}
-get_outlier_number(clean_data$eli_self)
+get_outlier_number(clean_data_eli$eli_self)
 ```
 
 #### Stereo
 
 ```{r}
-get_outlier_number(clean_data$eli_stereo)
+get_outlier_number(clean_data_eli$eli_stereo)
 ```
 
 #### Target
 
 ```{r}
-get_outlier_number(clean_data$eli_targ)
+get_outlier_number(clean_data_eli$eli_targ)
 ```
 
 ### Threat measures
@@ -237,37 +237,37 @@ get_outlier_number(clean_data$eli_targ)
 #### Realistic
 
 ```{r}
-get_outlier_number(clean_data$realistic_q)
+get_outlier_number(clean_data_bfi$realistic_q)
 ```
 
 #### Symbolic
 
 ```{r}
-get_outlier_number(clean_data$symbolic_q)
+get_outlier_number(clean_data_bfi$symbolic_q)
 ```
 
 #### Distance - coffee
 
 ```{r}
-get_outlier_number(clean_data$distance_coffee)
+get_outlier_number(clean_data_bfi$distance_coffee)
 ```
 
 #### Distance - town
 
 ```{r}
-get_outlier_number(clean_data$distance_town)
+get_outlier_number(clean_data_bfi$distance_town)
 ```
 
 #### Explicit - target
 
 ```{r}
-get_outlier_number(clean_data$explicit_targ)
+get_outlier_number(clean_data_bfi$explicit_targ)
 ```
 
 #### Explicit - group
 
 ```{r}
-get_outlier_number(clean_data$explicit_group)
+get_outlier_number(clean_data_bfi$explicit_group)
 ```
 
 ### Political orientation
@@ -275,15 +275,15 @@ get_outlier_number(clean_data$explicit_group)
 ### Overall
 
 ```{r}
-get_outlier_number(clean_data$pol_orient_1)
+get_outlier_number(clean_data_bfi$pol_orient_1)
 ```
 
 ### Social
 
 ```{r}
-outlier_ind1 <- get_outlier_number(clean_data$pol_orient_2)
+outlier_ind1 <- get_outlier_number(clean_data_bfi$pol_orient_2)
 
-orient_2_outliers <- clean_data[outlier_ind1,]
+orient_2_outliers <- clean_data_bfi[outlier_ind1,]
 orient_2_outliers %>% 
   select(sub_id, pol_orient_2) %>% 
   unique()
@@ -294,9 +294,9 @@ orient_2_outliers %>%
 ### Economic
 
 ```{r}
-outlier_ind2 <- get_outlier_number(clean_data$pol_orient_3)
+outlier_ind2 <- get_outlier_number(clean_data_bfi$pol_orient_3)
 
-orient_3_outliers <- clean_data[outlier_ind2,]
+orient_3_outliers <- clean_data_bfi[outlier_ind2,]
 orient_3_outliers %>% 
   select(sub_id, pol_orient_2) %>% 
   unique()
@@ -322,7 +322,7 @@ wide_data %>%
 ### Overall - after cleaning
 
 ```{r}
-clean_data %>% 
+clean_data_bfi %>% 
   select(sub_id) %>% 
   unique() %>% 
   nrow()
@@ -330,13 +330,30 @@ clean_data %>%
 
 ### Overall - after cleaning & listwise removal
 
+##### BFI
+
 ```{r}
 # Looking at main variables in analysis
-clean_data %>% 
+clean_data_bfi %>% 
   select(sub_id, analog_condition, target_condition, distance_coffee,
          distance_town, realistic_q, symbolic_q, explicit_targ, explicit_group,
          will_to_convo, pol_orient_1, pol_orient_2, pol_orient_3, bfi_self,
-         bfi_stereo, bfi_targ, eli_self, eli_stereo, eli_targ) %>% 
+         bfi_stereo, bfi_targ) %>% 
+  na.omit() %>% 
+  select(sub_id) %>% 
+  unique() %>% 
+  nrow()
+```
+
+#### ELI
+
+```{r}
+# Looking at main variables in analysis
+clean_data_eli %>% 
+  select(sub_id, analog_condition, target_condition, distance_coffee,
+         distance_town, realistic_q, symbolic_q, explicit_targ, explicit_group,
+         will_to_convo, pol_orient_1, pol_orient_2, pol_orient_3, eli_self,
+         eli_stereo, eli_targ) %>% 
   na.omit() %>% 
   select(sub_id) %>% 
   unique() %>% 
@@ -346,7 +363,7 @@ clean_data %>%
 ### Participants per condition
 
 ```{r}
-clean_data %>% 
+clean_data_bfi %>% 
   select(sub_id, target_condition, analog_condition) %>% 
   unique() %>% 
   group_by(target_condition, analog_condition) %>% 
@@ -368,7 +385,7 @@ wide_data %>%
 ### Overall - after cleaning
 
 ```{r}
-clean_data %>% 
+clean_data_bfi %>% 
   select(sub_id, data_site) %>% 
   unique() %>% 
   group_by(data_site) %>% 
@@ -388,7 +405,7 @@ clean_data %>%
 ## Race
 
 ```{r}
-ethnicity_counts <- clean_data %>% 
+ethnicity_counts <- clean_data_bfi %>% 
   select(sub_id, race) %>%  
   na.omit() %>% 
   unique() %>% 
@@ -403,7 +420,7 @@ dem_percent_table(ethnicity_counts)
 ## Gender
 
 ```{r}
-gender_counts <- clean_data %>% 
+gender_counts <- clean_data_bfi %>% 
   select(sub_id, gender) %>%  
   na.omit() %>% 
   unique() %>% 
@@ -418,7 +435,7 @@ dem_percent_table(gender_counts)
 ## Education
 
 ```{r}
-edu_counts <- clean_data %>% 
+edu_counts <- clean_data_bfi %>% 
   select(sub_id, education) %>%  
   na.omit() %>% 
   unique() %>% 
@@ -433,7 +450,7 @@ dem_percent_table(edu_counts)
 ## Parent education
 
 ```{r}
-edu_parent_counts <- clean_data %>% 
+edu_parent_counts <- clean_data_bfi %>% 
   select(sub_id, parent_education) %>%  
   na.omit() %>% 
   unique() %>% 
@@ -448,7 +465,7 @@ dem_percent_table(edu_parent_counts)
 ## Birth country
 
 ```{r}
-birth_country_counts <- clean_data %>% 
+birth_country_counts <- clean_data_bfi %>% 
   select(sub_id, country_birth) %>% 
   na.omit() %>% 
   unique() %>% 
@@ -463,7 +480,7 @@ dem_percent_table(birth_country_counts)
 ## Country raised
 
 ```{r}
-raised_country_counts <- clean_data %>% 
+raised_country_counts <- clean_data_bfi %>% 
   select(sub_id, country_raised) %>% 
   na.omit() %>% 
   unique() %>% 
@@ -489,7 +506,7 @@ Of those who responded that they were not primarily raised in the US, they have 
 ## Native language
 
 ```{r}
-lang_counts <- language_counts <- clean_data %>% 
+lang_counts <- language_counts <- clean_data_bfi %>% 
   select(sub_id, native_language) %>% 
   na.omit() %>% 
   unique() %>% 
@@ -504,7 +521,7 @@ dem_percent_table(lang_counts)
 ### Native language follow-up
 
 ```{r}
-clean_data %>% 
+clean_data_bfi %>% 
   filter(native_language == "Not English") %>% 
   select(sub_id, native_lang_follow) %>% 
   unique()
