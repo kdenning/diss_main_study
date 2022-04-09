@@ -181,6 +181,12 @@ corrplot(cor_plot_predictors1,
 ### MLM Results
 
 ```{r}
+mod_1_data_bfi <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
+         target_condition, bfi_targ, bfi_self) %>% 
+  unique() %>% 
+  na.omit() 
+
 model1_bfi <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc + 
                      (bfi_self_pmc | sub_id), 
                    data = mod_1_data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
