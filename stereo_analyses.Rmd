@@ -62,7 +62,9 @@ clean_data_eli %<>%
 
 # Stereotyping
 
-## BFI 
+## BFI
+
+### Targ x  threat no stereo
 
 ```{r}
 data_bfi <- clean_data_bfi %>% 
@@ -71,63 +73,150 @@ data_bfi <- clean_data_bfi %>%
   unique() %>% 
   na.omit() 
 
-bfi_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
-                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = data_bfi)
-summary(bfi_stereo)
-tab_model(bfi_stereo)
-
+bfi_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition +
+                     (bfi_self_pmc | sub_id), data = data_bfi)
+summary(bfi_nostereo)
+tab_model(bfi_nostereo)
 ```
 
-Both counter-projection and stereotyping have unique effects and interact with target-level threat.
-
-### Simple Slopes
+#### Simple Slopes
 
 ```{r}
 threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
-simpslopes_bfi_stereo1 <- emtrends(bfi_stereo, ~ itt_comp_gmc,
+targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
+simpslopes_bfi_nostereo1 <- emtrends(bfi_nostereo, ~ itt_comp_gmc*target_condition,
                               var ="bfi_self_pmc",
-                              at = threat_levels)
+                              at = c(targ_levels, threat_levels))
+
+
+simpslopes_bfi_nostereo1
+pairs(simpslopes_bfi_nostereo1)
+```
+
+#### Visualization
+
+```{r}
+bfi_no_stereo_df <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = bfi_nostereo)
+
+bfi_no_stereo_df <- as.data.frame(bfi_no_stereo_df)
+bfi_no_stereo_df$itt_comp_gmc <- as.factor(bfi_no_stereo_df$itt_comp_gmc)
+bfi_no_stereo_df$target_condition <- as.factor(bfi_no_stereo_df$target_condition)
+
+threat_labels <- c("-1.07" = "Low target \n level threat",
+                   "0" = "Average target \n level threat",
+                   "1.07" = "High target \n level threat")
+
+ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~itt_comp_gmc,
+             labeller = labeller(itt_comp_gmc = threat_labels)) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Control",
+                                  "Warm",
+                                  "Loss"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat and target condition",
+         subtitle = "Using the BFI",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+### With Stereo
+
+```{r}
+bfi_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition*bfi_stereo_pmc +
+                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = data_bfi)
+summary(bfi_stereo)
+tab_model(bfi_stereo)
+```
+
+
+#### Simple Slopes
+
+```{r}
+simpslopes_bfi_stereo1 <- emtrends(bfi_stereo, ~ itt_comp_gmc*target_condition,
+                              var ="bfi_self_pmc",
+                              at = c(targ_levels, threat_levels))
+
 
 simpslopes_bfi_stereo1
+pairs(simpslopes_bfi_stereo1)
 ```
 
 With residual counter-projection, people do not project nor counter-project when they report higher than average threat. Otherwise, people project normally. Though slightly different from predicted, this demonstrates that threat does reduce projection after accounting for stereotyping with those who perceive high threat, but not others. However, there is not a residual effect of counter-projection with the BFI - which I believe is consistent with PSPB.
 
 Is this consistent with PSPB?
 
-### Visualization
+#### Visualization
 
 ```{r}
-bfi_stereo1 <- effect("bfi_self_pmc:itt_comp_gmc",
-                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07)),
-                         mod =bfi_stereo)
+bfi_stereo_df <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = bfi_stereo)
 
-bfi_stereo1 <- as.data.frame(bfi_stereo1)
-bfi_stereo1$itt_comp_gmc <- as.factor(bfi_stereo1$itt_comp_gmc)
+bfi_stereo_df <- as.data.frame(bfi_stereo_df)
+bfi_stereo_df$itt_comp_gmc <- as.factor(bfi_stereo_df$itt_comp_gmc)
+bfi_stereo_df$target_condition <- as.factor(bfi_stereo_df$target_condition)
 
-ggplot(bfi_stereo1, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
+ggplot(bfi_stereo_df, aes(bfi_self_pmc, fit, group = target_condition)) +
   geom_smooth(method = "lm", 
                 size = .7, 
                 se = FALSE,
                 colour = "black", 
-                aes(linetype = itt_comp_gmc)) +
+                aes(linetype = target_condition)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target-level \nthreat",
-                        breaks = c(-1.07, 0, 1.07), 
-                       labels = c("Low",
-                                  "Average",
-                                  "High"),
+  facet_wrap(~itt_comp_gmc,
+             labeller = labeller(itt_comp_gmc = threat_labels)) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Control",
+                                  "Warm",
+                                  "Loss"),
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
-    labs(title = "Residual projection by target-level threat",
-         subtitle = "After accounting for stereotyping; Using the BFI",
+    labs(title = "Residual projection by target-level threat and target condition",
+         subtitle = "Using the BFI; After accounting for stereotyping",
        x = "BFI responses for self",
        y = "BFI responses for target")
 ```
 
+### Simple Slopes
+
+```{r}
+simpslopes_eli_nostereo1 <- emtrends(eli_nostereo, ~ itt_comp_gmc,
+                              var ="eli_self_pmc",
+                              at = list(threat_levels,
+                                        target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM")))
+
+simpslopes_eli_stereo1
+```
+
+Replicating PSPB, even after accounting for stereotyping, we continue to see counter-projection with the ELI. As predicted, it is those with high-threat who continue to have residual counter-projection after including stereotyping in the model. Those with average or low threat continue to positively project. 
+
 ## ELI
+
+### Targ x  threat no stereo
 
 ```{r}
 data_eli <- clean_data_eli %>% 
@@ -136,52 +225,9 @@ data_eli <- clean_data_eli %>%
   unique() %>% 
   na.omit() 
 
-eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc +
-                     (0 + eli_self_pmc + eli_stereo_pmc | sub_id), data = data_eli)
-summary(eli_stereo)
-tab_model(eli_stereo)
+eli_nostereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*target_condition +
+                     (0 + eli_self_pmc | sub_id), data = data_eli)
+summary(eli_nostereo)
+tab_model(eli_nostereo)
 ```
 
-### Simple Slopes
-
-```{r}
-simpslopes_eli_stereo1 <- emtrends(eli_stereo, ~ itt_comp_gmc,
-                              var ="eli_self_pmc",
-                              at = threat_levels)
-
-simpslopes_eli_stereo1
-```
-
-Replicating PSPB, even after accounting for stereotyping, we continue to see counter-projection with the ELI. As predicted, it is those with high-threat who continue to have residual counter-projection after including stereotyping in the model. Those with average or low threat continue to positively project. 
-
-### Visualization
-
-```{r}
-eli_stereo1 <- effect("eli_self_pmc:itt_comp_gmc",
-                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07)),
-                         mod = eli_stereo)
-
-eli_stereo1 <- as.data.frame(eli_stereo1)
-eli_stereo1$itt_comp_gmc <- as.factor(eli_stereo1$itt_comp_gmc)
-
-ggplot(eli_stereo1, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = FALSE,
-                colour = "black", 
-                aes(linetype = itt_comp_gmc)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target-level \nthreat",
-                        breaks = c(-1.07, 0, 1.07), 
-                       labels = c("Low",
-                                  "Average",
-                                  "High"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(title = "Residual projection by target-level threat",
-         subtitle = "After accounting for stereotyping; Using the ELI",
-       x = "ELI responses for self",
-       y = "ELI responses for target")
-```
