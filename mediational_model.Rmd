@@ -12,8 +12,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-test
-
 ```{r data prep, echo = FALSE, warning = FALSE, message = FALSE, error = FALSE}
 # Loading packages
 library(psych)
@@ -30,6 +28,7 @@ library(ggplot2)
 library(emmeans)
 library(corrplot)
 library(doParallel) 
+library(doRNG)
 
 # Functions to clean document, get data from wide to long format
 source("functions/Cleaning.R")
@@ -78,7 +77,7 @@ clean_data_eli <- remove_participants(clean_vars_eli)
 
 clean_data_bfi %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
-         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
+         itt_comp_gmc = itt_comp - mean(itt_comp, na.rm = TRUE))
 
 clean_data_eli %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
@@ -401,49 +400,27 @@ tab_model(mod3b_eli)
 
 # Bootstrapping
 
-Is there a point since I was only interested in the mediational effect explaining the effect of analogous perspective taking?
+## BFI
 
-```{r}
+```{r parallel processing version}
 # Set-up for mediational model -------------------------------------------------
-# Getting the variables necessary for the model
+# Getting basic data cleaning data before for loops
 data_4_med_bfi <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc, target_condition, analog_condition) %>% 
-  unique() %>% 
-  na.omit() 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
+         target_condition, analog_condition) %>% 
+  unique()
 
-  # Getting empty df that is already the correct length
-  df_coeffs <- data.frame(matrix(vector(mode = 'numeric',length = 1), nrow = 1, ncol = 16))
-  
-  # Renaming variables appropriately
-  df_coeffs %<>%
-    rename(a = X1,
-         a_cil =  X2,
-         a_ciu = X3,
-         b = X4,
-         b_cil = X5,
-         b_ciu = X6,
-         c = X7,
-         c_cil = X8,
-         c_ciu = X9,
-         c_prime = X10,
-         c_prime_cil = X11,
-         c_prime_ciu = X12,
-         int_on_cp_coeff = X13,
-         int_on_cp_cil = X14,
-         int_on_cp_ciu = X15,
-         total = X16
-         )
+df_ids <- data_4_med_bfi %>% 
+    select(sub_id) %>% 
+    unique()
 
+df_items <- data_4_med_bfi %>% 
+  group_by(sub_id)
 
-
-# pb = txtProgressBar(min = 1, max = 10000, style = 3)
-
-
-boot_funct <- function(trials){
-  
+# Empty df
    empty_df <- data.frame(matrix(vector(mode = 'numeric',length = 1), nrow = 1, ncol = 16))
   
-  # Renaming variables appropriately
+# Renaming variables appropriately
   empty_df %<>%
     rename(a = X1,
          a_cil =  X2,
@@ -462,21 +439,29 @@ boot_funct <- function(trials){
          int_on_cp_ciu = X15,
          total = X16
          )
-  
-  # setTxtProgressBar(pb,i)
-  
-  df_ids <- data_4_med_bfi %>% 
-    select(sub_id) %>% 
-    unique() %>% 
+
+# Seeting up multiple cores
+registerDoParallel(8)
+
+# Set seed for multiple cores
+registerDoRNG(1)
+
+# Trials to be run
+trials <- 10000
+
+# Looping with parallel processing with doParallel -----------------------------
+## Keeping track of how long it takes
+## 5 seconds versus 22 seconds per iteration without parallel processing
+system.time({
+med_df <- foreach(icount(trials)) %dopar% {
+  # Getting samples ------------------------------------------------------------
+  df_id_samp  <- df_ids %>% 
     slice_sample(n = 415)
   
-  # Getting a randomly sampled set of items per each id
-  df_items <- data_4_med_bfi %>% 
-  group_by(sub_id) %>% 
+  df_item_samp <- df_items %>% 
   sample_n(size = 19, replace = TRUE)
   
-  # Joining for a random sampled df of a subset of the sample
-  df_samp <- left_join(df_ids, df_items)
+  df_samp <- left_join(df_id_samp, df_item_samp)
   
   df_lm <- df_samp %>% 
     select(sub_id, itt_comp_gmc, analog_condition) %>% 
@@ -544,42 +529,41 @@ boot_funct <- function(trials){
   empty_df$int_on_cp_cil[1] <- round(int_on_cp_cil,digits = 3) # do I need this?
   empty_df$int_on_cp_ciu[1] <- round(int_on_cp_ciu, digits = 3) # do I need this?
   empty_df$total[1] <- round(empty_df$a*empty_df$b+empty_df$c_prime, digits = 3) # Tested for one model and total = c output, which is what it should be
-  
   coeffs <- rbind(data.frame(), empty_df)
-  return(coeffs)
-
-} 
-
-# setting the seed
-numCores <- detectCores() - 1
-cl <- makeCluster(numCores)
-boot_funct(1)
-system.time({
   
-}) 
+  }
+})
 
-mclapply(1:5, boot_funct)  
+med_results <- do.call(rbind.data.frame, med_df)
+```
 
-set.seed(123)
-trials <- seq(1, 5)
-system.time({
-  list_results <- lapply(trials, boot_funct)
-}) 
+```{r for loop}
+pb = txtProgressBar(min = 1, max = 10000, style = 3)
 
-med_results <- bind_rows(list_results, .id = "model")
+empty_df <- data.frame(matrix(vector(mode = 'numeric',length = 10000), nrow = 10000, ncol = 16))
+  
+  # Renaming variables appropriately
+  empty_df %<>%
+    rename(a = X1,
+         a_cil =  X2,
+         a_ciu = X3,
+         b = X4,
+         b_cil = X5,
+         b_ciu = X6,
+         c = X7,
+         c_cil = X8,
+         c_ciu = X9,
+         c_prime = X10,
+         c_prime_cil = X11,
+         c_prime_ciu = X12,
+         int_on_cp_coeff = X13,
+         int_on_cp_cil = X14,
+         int_on_cp_ciu = X15,
+         total = X16
+         )
 
- 
-num_cores <- detectCores() - 1  
-registerDoParallel(cores = num_cores)  
-cl <- makeCluster(num_cores, type="FORK")  
-result <- parLapply(cl, 10:10000, getPrimeNumbers)  
-stopCluster(cl)  
-
-
-cl <- makeCluster(no_cores, type="FORK")  
-registerDoParallel(cl)  
-result <- foreach(i=10:10000) %dopar% getPrimeNumbers(i)
-
+  set.seed(123)
+  
 for (i in 1:10000) {
   # Sample the df---------------------------------------------------------------
   # Getting a subset of ids
@@ -587,7 +571,6 @@ for (i in 1:10000) {
   #   select(sub_id) %>% 
   #   unique() %>% 
   #   sample_n(size = 424, replace = TRUE)
-  
   
   setTxtProgressBar(pb,i)
   
