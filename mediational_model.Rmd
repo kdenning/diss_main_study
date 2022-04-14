@@ -12,6 +12,8 @@ editor_options:
   chunk_output_type: console
 ---
 
+test
+
 ```{r data prep, echo = FALSE, warning = FALSE, message = FALSE, error = FALSE}
 # Loading packages
 library(psych)
