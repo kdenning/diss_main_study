@@ -334,12 +334,22 @@ ggplot(mod1_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
 # Model 2: Instructions on threat
 
 ```{r}
+contrasts(clean_data_bfi$analog_condition)
 mod2_data <- clean_data_bfi %>% 
-  select(sub_id, itt_comp, analog_condition, target_condition) %>% 
+  select(sub_id, itt_comp_gmc, analog_condition, target_condition) %>% 
   unique()
 
-mod2 <- lm(itt_comp ~ analog_condition, data = mod2_data)
+mod2 <- lm(itt_comp_gmc ~ analog_condition, data = mod2_data)
 summary(mod2)
+```
+
+```{r}
+mod2_data %>% 
+  group_by(analog_condition) %>% 
+  mutate(mean = mean(itt_comp_gmc)) %>% 
+  select(analog_condition, mean) %>% 
+  unique()
+
 ```
 
 # Model 2b: Instructions x Target Variable on Threat
