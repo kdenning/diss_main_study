@@ -535,6 +535,11 @@ med_df <- foreach(icount(trials)) %dopar% {
 })
 
 med_results <- do.call(rbind.data.frame, med_df)
+
+# Exported data to save outside r environment
+# med_results %>% 
+#   mutate(model = 1:10000) %>% 
+#   write.csv('bootstrap_mediation_output.csv', row.names = F)
 ```
 
 ```{r for loop}
