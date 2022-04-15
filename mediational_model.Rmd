@@ -547,13 +547,22 @@ med_df <- foreach(icount(trials)) %dopar% {
 med_results <- do.call(rbind.data.frame, med_df)
 
 med_ave_estimates <- med_results %>% 
-  mutate(a_mean = mean(a),
-         b_mean = mean(b),
-         c_mean = mean(c),
-         cprime_mean = mean(c_prime),
+  # Analog was the reference condition, but I pre-registered that the control would be; multiped by "-1" to change direction for 
+  # estimates affected by this error: a, c, and c_prime
+  mutate(a = a*-1, 
+         c = c*-1,
+         c_prime = c_prime*-1,
+         # indirect effect
+         axb = (a*b)) %>% 
+  mutate(a_mean = mean(a), # analog pt on threat
+         b_mean = mean(b), # threat on counter-projection
+         c_mean = mean(c), # analog pt on counter-projection
+         cprime_mean = mean(c_prime),# analog pt on counter-projection including threat as covariate in model
+         axb_mean = mean(axb),
          a_med = median(a),
          b_med = median(b),
          c_med = median(c),
+         axb_med = median(axb),
          cprime_med = median(c_prime),
          a_cil = quantile(a, probs = .025),
          a_ciu = quantile(a, probs = .975),
@@ -562,12 +571,15 @@ med_ave_estimates <- med_results %>%
          c_cil = quantile(c, probs = .025),
          c_ciu = quantile(c, probs = .975),
          cprime_cil = quantile(c_prime, probs = .025),
-         cprime_ciu = quantile(c_prime, probs = .975)) %>% 
+         cprime_ciu = quantile(c_prime, probs = .975),
+         axb_cil = quantile(axb, probs = .025),
+         axb_ciu = quantile(axb, probs = .975)) %>% 
   select(a_mean, b_mean, c_mean, cprime_mean, 
          a_med, b_med, c_med, cprime_med,
-         a_cil, a_ciu, b_cil, b_ciu, c_cil, c_ciu, cprime_cil, cprime_ciu) %>% 
+         a_cil, a_ciu, b_cil, b_ciu, c_cil, c_ciu, cprime_cil, cprime_ciu, 
+         axb_mean, axb_med, axb_cil, axb_ciu) %>% 
   unique() %>% 
-  pivot_longer(a_mean:cprime_ciu,
+  pivot_longer(a_mean:axb_ciu,
                names_sep = "_",
                names_to = c("Estimate", "statistic")) %>% 
   pivot_wider(names_from = statistic, values_from = value)
