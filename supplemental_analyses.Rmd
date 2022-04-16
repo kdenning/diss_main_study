@@ -39,16 +39,75 @@ options(scipen = 999)
 wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 
 # Cleaning data using functions
-long_data <- get_wrangled(wide_data)
+long_data_bfi <- get_wrangled_bfi(wide_data)
+long_data_eli <- get_wrangled_eli(wide_data)
 
-clean_vars <- get_vars_cleaned(long_data)
+clean_vars_bfi <- get_vars_cleaned(long_data_bfi)
+clean_vars_eli <- get_vars_cleaned(long_data_eli)
 
-clean_data <- remove_participants(clean_vars)
+clean_data_bfi <- remove_participants(clean_vars_bfi)
+clean_data_eli <- remove_participants(clean_vars_eli)
 
-clean_data %<>%    
+clean_data_bfi %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = itt_comp - mean(itt_comp, na.rm = TRUE))
+
+clean_data_eli %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
          itt_comp_gmc = scale(itt_comp, center = T, scale = F))
 ```
+
+# Intervention checks {.tabset .tabset-fade .tabset-pills}
+
+## How much did they take Jen's perspective?
+
+```{r}
+pt_check_df <- clean_data_bfi %>% 
+  select(sub_id, analog_condition, intervention_check1, intervention_check2, intervention_check3) %>% 
+  unique() %>% 
+  mutate(intervention_check1 = as.numeric(dplyr::recode(intervention_check1, #how much did you take Jen's perspective
+                                             `Completely` = "4",
+                                             `Moderately` = "3",
+                                             `Slightly` = "2",
+                                             `Not at all` = "1")), 
+         intervention_check2 = as.numeric(dplyr::recode(intervention_check2, # How misunderstood is Jen
+                                             `Always` = "4",
+                                             `Slightly` = "3",
+                                             `Rarely` = "2",
+                                             `Not at all` = "1")))
+
+pt_check_df %>% 
+  group_by(analog_condition) %>% 
+  mutate(mean = mean(intervention_check1),
+         sd = sd(intervention_check1)) %>% 
+  select(analog_condition, mean, sd) %>% 
+  unique()
+```
+
+```{r}
+int_check1_res <- aov(intervention_check1 ~ analog_condition, data = pt_check_df)
+anova(int_check1_res)
+```
+
+How much they reported taking her perspective was not significantly different
+
+## How misunderstood was Jen?
+
+```{r}
+pt_check_df %>% 
+  group_by(analog_condition) %>% 
+  mutate(mean = mean(intervention_check2),
+         sd = sd(intervention_check2)) %>% 
+  select(analog_condition, mean, sd) %>% 
+  unique()
+```
+
+```{r}
+int_check2_res <- aov(intervention_check2 ~ analog_condition, data = pt_check_df)
+anova(int_check2_res)
+```
+
+How much they reported Jen was misunderstood was significantly different, with those in the analog condition saying she was more misunderstood. However, this did not have an effect on counter-projection.
 
 # Exploring relationship of ELI vars with politics {.tabset .tabset-fade .tabset-pills}
 
