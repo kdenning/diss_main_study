@@ -42,13 +42,20 @@ options(scipen = 999)
 wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 
 # Cleaning data using functions
-long_data <- get_wrangled(wide_data)
+long_data_bfi <- get_wrangled_bfi(wide_data)
+long_data_eli <- get_wrangled_eli(wide_data)
 
-clean_vars <- get_vars_cleaned(long_data)
+clean_vars_bfi <- get_vars_cleaned(long_data_bfi)
+clean_vars_eli <- get_vars_cleaned(long_data_eli)
 
-clean_data <- remove_participants(clean_vars)
+clean_data_bfi <- remove_participants(clean_vars_bfi)
+clean_data_eli <- remove_participants(clean_vars_eli)
 
-clean_data %<>%    
+clean_data_bfi %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
+
+clean_data_eli %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
          itt_comp_gmc = scale(itt_comp, center = T, scale = F))
 ```
@@ -56,7 +63,7 @@ clean_data %<>%
 # Other measures predicted by target threat
 
 ```{r}
-data_threat_lm <- clean_data %>% 
+data_threat_lm <- clean_data_bfi %>% 
   select(sub_id, target_condition, itt_comp, explicit_targ, explicit_group,
          distance_coffee, distance_town) %>% 
   unique()
@@ -105,15 +112,16 @@ anova(explicit_targ_lm)
 ### Composite alone
 
 ```{r}
-data_bfi <- clean_data %>% 
-  select(sub_id, bfi_number, bfi_targ, bfi_targ_pmc, bfi_self, bfi_self_pmc,
+data_bfi <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ, bfi_targ_pmc, bfi_self, 
+         bfi_self_pmc,analog_condition,
          itt_comp_gmc, target_condition, bfi_stereo, bfi_stereo_pmc, 
          distance_coffee, distance_town, explicit_targ, explicit_group) %>% 
   unique() %>% 
   na.omit() 
 
 model1_bfi_randslopes <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc + 
-                     (0 + bfi_self_pmc | sub_id), 
+                     (bfi_self_pmc | sub_id), 
                    data = data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
 
 tab_model(model1_bfi_randslopes,
@@ -124,7 +132,7 @@ tab_model(model1_bfi_randslopes,
 
 ```{r}
 bfi_targ <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition + 
-                     (0 + bfi_self_pmc | sub_id), 
+                     (bfi_self_pmc | sub_id), 
                    data = data_bfi) 
 
 summary(bfi_targ)
@@ -136,8 +144,8 @@ tab_model(bfi_targ)
 
 ```{r}
 bfi_targ_comp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = mod_1_data_bfi) 
+                     (bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
 
 summary(bfi_targ_comp)
 
@@ -222,12 +230,20 @@ ggplot(bfi_targ_comp_int_viz, aes(bfi_self_pmc, fit, group = target_condition)) 
 
 ```{r}
 bfi_coffee <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee + 
-                     (0 + bfi_self_pmc | sub_id), 
+                     (bfi_self_pmc | sub_id), 
                    data = data_bfi) 
 
 summary(bfi_coffee)
 
 tab_model(bfi_coffee)
+
+bfi_coffee_a <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee*analog_condition + 
+                     (bfi_self_pmc | sub_id), 
+                   data = data_bfi) 
+
+summary(bfi_coffee_a)
+
+tab_model(bfi_coffee_a)
 ```
 
 #### Model comparison with threat composite

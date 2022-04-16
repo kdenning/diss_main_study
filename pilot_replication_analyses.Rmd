@@ -40,11 +40,14 @@ options(scipen = 999)
 wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 
 # Cleaning data using functions
-long_data <- get_wrangled(wide_data)
+long_data_bfi <- get_wrangled_bfi(wide_data)
+long_data_eli <- get_wrangled_eli(wide_data)
 
-clean_vars <- get_vars_cleaned(long_data)
+clean_vars_bfi <- get_vars_cleaned(long_data_bfi)
+clean_vars_eli <- get_vars_cleaned(long_data_eli)
 
-clean_data <- remove_participants(clean_vars)
+clean_data_bfi <- remove_participants(clean_vars_bfi)
+clean_data_eli <- remove_participants(clean_vars_eli)
 ```
 
 # Confirming Target Threat Factor {.tabset .tabset-fade .tabset-pills}
@@ -52,7 +55,7 @@ clean_data <- remove_participants(clean_vars)
 ## Correlation matrix
 
 ```{r}
-cfa_vars <- clean_data %>% 
+cfa_vars <- clean_data_bfi %>% 
   select(sub_id, distance_coffee, distance_town, realistic_q, 
          symbolic_q, explicit_targ, explicit_group) %>% 
   unique() %>% 
@@ -128,7 +131,7 @@ Might not be the correct analysis due to small number of indicators
 
 ## EFA
 
-## nfactors
+### nfactors
 
 ```{r}
 par(mar=c(1,1,1,1))
@@ -152,10 +155,10 @@ Replicating the pilot, realistic and symbolic have high loadings, while the dist
 ## Alpha: Realistic and Symbolic
 
 ```{r}
-cfa_vars_2 <- cfa_vars %>% 
+efa_vars_2 <- cfa_vars %>% 
   select(symbolic_q, realistic_q)
 
-psych::alpha(cfa_vars_2)
+psych::alpha(efa_vars_2)
 ```
 
 ## Composite target threat measure
@@ -163,27 +166,29 @@ psych::alpha(cfa_vars_2)
 *Combining realistic and symbolic threat into one measure, like in the pilot.*
 
 ```{r}
-clean_data %<>%   
+clean_data_bfi %<>%   
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))))
 
+clean_data_eli %<>%   
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))))
 ```
 
 ### Mean
 
 ```{r}
-mean(clean_data$itt_comp)
+mean(clean_data_bfi$itt_comp)
 ```
 
 ### SD
 
 ```{r}
-sd(clean_data$itt_comp)
+sd(clean_data_bfi$itt_comp)
 ```
 
 ### Range
 
 ```{r}
-range(clean_data$itt_comp)
+range(clean_data_bfi$itt_comp)
 ```
 
 # ANOVA {.tabset .tabset-fade .tabset-pills}
@@ -191,8 +196,12 @@ range(clean_data$itt_comp)
 ## Summary results
 
 ```{r}
-contrasts(clean_data$target_condition)
-results <- aov(itt_comp ~ target_condition, data = clean_data)
+anova_data <- clean_data_bfi %>% 
+  select(itt_comp, target_condition, sub_id) %>% 
+  unique()
+
+contrasts(anova_data$target_condition)
+results <- aov(itt_comp ~ target_condition, data = anova_data)
 summary(results)
 ```
 

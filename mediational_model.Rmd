@@ -341,6 +341,10 @@ mod2_data <- clean_data_bfi %>%
 
 mod2 <- lm(itt_comp_gmc ~ analog_condition, data = mod2_data)
 summary(mod2)
+
+# mod2 <- aov(itt_comp_gmc ~ analog_condition, data = mod2_data) # Amw stats, does not matter that I used lm in mediation; probably easier for code
+# summary(mod2)
+# emmeans(mod2, pairwise ~ analog_condition)
 ```
 
 ```{r}
