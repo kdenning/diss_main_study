@@ -135,6 +135,23 @@ ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = target_condition)) +
        y = "BFI responses for target")
 ```
 
+#### Residuals
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(bfi_nostereo), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects (here random intercept):
+qqnorm(ranef(bfi_nostereo)$sub_id$bfi_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+# Checking residuals for intercept
+qqnorm(ranef(bfi_nostereo)$sub_id$`(Intercept)`,
+       main="Q-Q plot for the random intercept")
+```
+
+More normal, but a little tail
+
 ### With Stereo
 
 ```{r}
@@ -199,6 +216,25 @@ ggplot(bfi_stereo_df, aes(bfi_self_pmc, fit, group = target_condition)) +
        y = "BFI responses for target")
 ```
 
+#### Residuals
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(bfi_stereo), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects 
+qqnorm(ranef(bfi_stereo)$sub_id$bfi_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+qqnorm(ranef(bfi_stereo)$sub_id$bfi_stereo_pmc,
+       main="Q-Q plot for the stereotyping random effect")
+
+# Checking residuals for intercept
+qqnorm(ranef(bfi_stereo)$sub_id$`(Intercept)`,
+       main="Q-Q plot for the random intercept")
+```
+
+Definitely a tail, but only a few points, so most likely robust; stereo is the worst, may need to transform it
 
 ## Only composite
 
@@ -253,6 +289,26 @@ ggplot(bfi_stereo_comp_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
        x = "BFI responses for self",
        y = "BFI responses for target")
 ```
+
+#### Residuals
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(bfi_stereo_comp), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects (here random intercept):
+qqnorm(ranef(bfi_stereo_comp)$sub_id$bfi_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+qqnorm(ranef(bfi_stereo_comp)$sub_id$bfi_stereo_pmc,
+       main="Q-Q plot for the stereotyping random effect")
+
+# Checking residuals for intercept
+qqnorm(ranef(bfi_stereo_comp)$sub_id$`(Intercept)`,
+       main="Q-Q plot for the random intercept")
+```
+
+Also seems to have slight tails, basically when stereotyping is added to the model
 
 NEED TO UPDATE FOR ELI
 

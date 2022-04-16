@@ -181,7 +181,9 @@ corrplot(cor_plot_predictors1,
          addCoef.col = 'grey50')
 ```
 
-### MLM Results
+### Level 1 residuals
+
+No predictors included; just projection
 
 ```{r}
 bfi_data <- clean_data_bfi %>% 
@@ -191,6 +193,29 @@ bfi_data <- clean_data_bfi %>%
   unique() %>% 
   na.omit() 
 
+l1_resid_mod <- lmer(bfi_targ_pmc ~ bfi_self_pmc+ 
+                     (bfi_self_pmc| sub_id), 
+                   data = bfi_data)
+
+
+# checking normality of conditional residuals
+qqnorm(residuals(l1_resid_mod, main="Q-Q plot for conditional residuals"))
+
+# checking the normality of the random effects (here random intercept):
+qqnorm(ranef(l1_resid_mod)$sub_id$bfi_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+# Checking residuals for intercept
+qqnorm(ranef(l1_resid_mod)$sub_id$`(Intercept)`,
+       main="Q-Q plot for the random intercept")
+
+```
+
+Normal, normal, intercept is lightly tailed/normal
+
+### MLM Results
+
+```{r}
 model1_bfi <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc + 
                      (bfi_self_pmc | sub_id), 
                    data = bfi_data) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
@@ -414,8 +439,6 @@ tab_model(mod3b_eli)
 
 # Bootstrapping
 
-## BFI
-
 ```{r parallel processing version}
 # Set-up for mediational model -------------------------------------------------
 # Getting basic data cleaning data before for loops
@@ -596,130 +619,6 @@ med_ave_estimates
 #   write.csv('bootstrap_mediation_output.csv', row.names = F)
 
 
-```
-
-Did not use the for loop code because it was too slow and the computer kept stopping in the middle, but preserved below
-
-```{r for loop}
-pb = txtProgressBar(min = 1, max = 10000, style = 3)
-
-empty_df <- data.frame(matrix(vector(mode = 'numeric',length = 10000), nrow = 10000, ncol = 16))
-  
-  # Renaming variables appropriately
-  empty_df %<>%
-    rename(a = X1,
-         a_cil =  X2,
-         a_ciu = X3,
-         b = X4,
-         b_cil = X5,
-         b_ciu = X6,
-         c = X7,
-         c_cil = X8,
-         c_ciu = X9,
-         c_prime = X10,
-         c_prime_cil = X11,
-         c_prime_ciu = X12,
-         int_on_cp_coeff = X13,
-         int_on_cp_cil = X14,
-         int_on_cp_ciu = X15,
-         total = X16
-         )
-
-  set.seed(123)
-  
-for (i in 1:10000) {
-  # Sample the df---------------------------------------------------------------
-  # Getting a subset of ids
-  # df_ids <- data_4_med_bfi %>% 
-  #   select(sub_id) %>% 
-  #   unique() %>% 
-  #   sample_n(size = 424, replace = TRUE)
-  
-  setTxtProgressBar(pb,i)
-  
-  df_ids <- data_4_med_bfi %>% 
-    select(sub_id) %>% 
-    unique() %>% 
-    slice_sample(n = 415)
-  
-  # Getting a randomly sampled set of items per each id
-  df_items <- data_4_med_bfi %>% 
-  group_by(sub_id) %>% 
-  sample_n(size = 19, replace = TRUE)
-  
-  # Joining for a random sampled df of a subset of the sample
-  df_samp <- left_join(df_ids, df_items)
-  
-  df_lm <- df_samp %>% 
-    select(sub_id, itt_comp_gmc, analog_condition) %>% 
-    unique()
-  
-  # Running model for non-mediated effect---------------------------------------
-  pt_on_cp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*analog_condition +
-                         (bfi_self_pmc | sub_id), 
-                   data = df_samp)
-  
-  # Getting coefficients for direct effect of PT, non-mediated
-  fixed_eff_pt_on_cp <- fixef(pt_on_cp) 
-  c <- fixed_eff_pt_on_cp[4] # non mediated effect of analog pt on projection
-  
-  # Getting cis for non-mediated direct effect
-  pt_on_cp_direct_ci <- confint(pt_on_cp,level=0.95)
-  c_cil <- pt_on_cp_direct_ci[8,1]
-  c_ciu <- pt_on_cp_direct_ci[8,2]
-  
-  # Running model on indirect effect--------------------------------------------
-  pt_on_threat <- lm(itt_comp_gmc ~ analog_condition, data = df_lm)
-  
-  # Getting coefficient for indirect
-  a <- pt_on_threat$coefficients[2] # effect of analog on threat; a
-  
-  # Getting indirect CI
-  lm_ci <- confint(pt_on_threat,level=0.95)
-  a_cil <- lm_ci[2,1]
-  a_ciu <- lm_ci[2,2]
-  
-  # Running model on direct, mediated effect -----------------------------------
-  threat_on_cp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*analog_condition +
-                         (bfi_self_pmc | sub_id), 
-                   data = df_samp)
-  
-  # getting fixed effects from lmer into subsettable format
-  fixed_eff <- fixef(threat_on_cp) 
-  b <- fixed_eff[5] # effect of threat on projection; b
-  c_prime <- fixed_eff[6] # effect of pt on projection after accounting for threat; c'
-  int_on_cp_coeff <- fixed_eff[8] # interaction on projection; do I need this?
-  
-  # Getting CIs for lmer model
-  indirect_ci <- confint(threat_on_cp,level=0.95)
-  b_cil <- indirect_ci[9,1]
-  b_ciu <- indirect_ci[9,2]
-  c_prime_cil <- indirect_ci[10,1]
-  c_prime_ciu <- indirect_ci[10,2]
-  int_on_cp_cil <- indirect_ci[12,1]
-  int_on_cp_ciu <- indirect_ci[12,2]
-  
-  # Putting coefficients into overall df----------------------------------------
-  df_coeffs$a[i] <- round(a, digits = 3)
-  df_coeffs$a_cil[i] <- round(a_cil, digits = 3)
-  df_coeffs$a_ciu[i] <- round(a_ciu, digits = 3)
-  df_coeffs$b[i] <- round(b, digits = 3)
-  df_coeffs$b_cil[i] <- round(b_cil, digits = 3)
-  df_coeffs$b_ciu[i] <- round(b_ciu, digits = 3)
-  df_coeffs$c[i] <- round(c, digits = 3)
-  df_coeffs$c_cil[i] <- round(c_cil, digits = 3)
-  df_coeffs$c_ciu[i] <- round(c_ciu, digits = 3)
-  df_coeffs$c_prime[i] <- round(c_prime, digits = 3)
-  df_coeffs$c_prime_cil[i] <- round(c_prime_cil, digits = 3)
-  df_coeffs$c_prime_ciu[i] <- round(c_prime_ciu, digits = 3)
-  df_coeffs$int_on_cp_coeff[i] <- round(int_on_cp_coeff, digits = 3) # do I need this?
-  df_coeffs$int_on_cp_cil[i] <- round(int_on_cp_cil,digits = 3) # do I need this?
-  df_coeffs$int_on_cp_ciu[i] <- round(int_on_cp_ciu, digits = 3) # do I need this?
-  df_coeffs$total[i] <- round(df_coeffs$a[i]*df_coeffs$b[i]+df_coeffs$c_prime[i], digits = 3) # Tested for one model and total = c output, which is what it should be
-
-}
-
-close(pb)
 ```
 
 Things to do/check:
