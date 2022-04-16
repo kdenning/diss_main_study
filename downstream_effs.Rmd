@@ -1,0 +1,163 @@
+---
+title: "Downstream Effects"
+output: 
+    html_document:
+      code_download: TRUE
+      toc: TRUE
+      toc_float:
+        collapsed: FALSE
+      toc_depth: 1
+      code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r data prep, echo = FALSE, warning = FALSE, message = FALSE, error = FALSE}
+# Loading packages
+library(psych)
+library(lme4)
+library(nlme)
+library(sjPlot)
+library(effects)
+library(magrittr) # part of the tidyverse but must be read in on its own
+library(parameters)
+library(dplyr)
+library(tidyr)
+library(rio)
+library(ggplot2)
+library(emmeans)
+library(corrplot)
+library(doParallel) 
+library(doRNG)
+
+# Functions to clean document, get data from wide to long format
+source("functions/Cleaning.R")
+
+# Setting global chunk options
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+options(scipen = 999)
+
+# Importing data
+wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
+
+# wide_data_sub <- wide_data %>%
+#   select(sub_id,
+#          bfi_self_1:eli_self_10,
+#          bfi_ster_1:eli_stereo_10,
+#          bfi_targ_1:eli_targ_10)
+# 
+# bias_counts <- apply(wide_data_sub, 1, function(x) length(which(x=="3")))
+# bias_counts <- as.data.frame(bias_counts)
+# 
+# total_answers <- length(wide_data_sub)
+# 
+# # Used the sub_ids obtained from below in function above
+# bias_counts %>%
+#   mutate(bias_percents = (bias_counts/total_answers)*100) %>%
+#   filter(bias_percents > 50)
+# 
+# 
+# wide_data <- wide_data[-c(12, 17, 18, 22, 24, 31, 40, 70, 78, 82, 86, 87, 99, 
+#                           112, 130, 131, 144, 145, 147, 154, 165, 166, 180, 192, 
+#                           216, 247, 253, 258, 265, 275, 291, 293, 313, 324, 349,
+#                           362, 375, 385, 387, 409, 410, 460, 474, 483, 486), ] 
+
+# Cleaning data using functions
+long_data_bfi <- get_wrangled_bfi(wide_data)
+long_data_eli <- get_wrangled_eli(wide_data)
+
+clean_vars_bfi <- get_vars_cleaned(long_data_bfi)
+clean_vars_eli <- get_vars_cleaned(long_data_eli)
+
+clean_data_bfi <- remove_participants(clean_vars_bfi)
+clean_data_eli <- remove_participants(clean_vars_eli)
+
+clean_data_bfi %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = itt_comp - mean(itt_comp, na.rm = TRUE))
+
+clean_data_eli %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
+
+bfi_data <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
+         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc,
+         analog_condition, will_to_convo) %>% 
+  unique() %>% 
+  na.omit() 
+```
+
+# Residual counter-projection on later conversation  {.tabset .tabset-fade .tabset-pills}
+
+## Model output to pull coeffs
+
+```{r}
+bfi_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition*bfi_stereo_pmc +
+                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = bfi_data)
+summary(bfi_stereo)
+tab_model(bfi_stereo)
+```
+
+## Getting coefficients
+
+```{r}
+mod_coeffs <-coefficients(bfi_stereo)
+
+cp_main <- mod_coeffs$sub_id$bfi_self_pmc
+threat_comp <- mod_coeffs$sub_id$`bfi_self_pmc:itt_comp_gmc`
+threat_targ_loss <- mod_coeffs$sub_id$`bfi_self_pmc:target_conditionLOSS`
+threat_targ_warm <- mod_coeffs$sub_id$`bfi_self_pmc:target_conditionWARM`
+int_warm_cont <- mod_coeffs$sub_id$`bfi_self_pmc:itt_comp_gmc:target_conditionWARM`
+int_loss_cont <- mod_coeffs$sub_id$`bfi_self_pmc:itt_comp_gmc:target_conditionLOSS`
+sub_id <- bfi_data %>% 
+  select(sub_id, will_to_convo) %>% 
+  unique()
+
+coeffs_df <- cbind(sub_id, cp_main, threat_comp, threat_targ_loss, threat_targ_warm,
+                   int_warm_cont, int_loss_cont)
+
+coeffs_df %<>% 
+  mutate(will_to_convo = as.numeric(dplyr::recode(will_to_convo,
+                       `0 minutes` = "1",
+                       `15 minutes` = "2",
+                       `30 minutes` = "3",
+                       `45 minutes` = "4",
+                       `60 minutes` = "5")))
+```
+
+## Models predicting downstream 
+
+### Main Effect
+
+```{r}
+# Singularities with so many in the models, so will do individual models
+downstream_main <- lm(will_to_convo ~ cp_main, data = coeffs_df)
+summary(downstream_main)
+```
+
+### Interaction
+
+```{}
+# Singular; so did not matter doing individual models; only main effect matters
+downstream_sig_int <- lm(will_to_convo ~ int_loss_cont, data = coeffs_df)
+summary(downstream_sig_int)
+```
+
+# Visualization  {.tabset .tabset-fade .tabset-pills}
+
+```{r}
+ggplot(coeffs_df, aes(cp_main, will_to_convo)) +
+  geom_smooth(method = "lm",
+              colour = "black") +
+  theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  labs(title = "Projection coefficients predicting behavior with target",
+         subtitle = "Negative coefficients indicate counter-projection",
+       y = "Time willing to converse (1 = None; 5 = 60 Minutes)",
+       x = "Projection coefficients")
+                                        
+```
