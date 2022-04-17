@@ -1,5 +1,5 @@
 ---
-title: "Other Pre-Registered Analyses"
+title: "Residual Counter-Projection"
 output: 
     html_document:
       code_download: TRUE
@@ -60,11 +60,9 @@ clean_data_eli %<>%
          itt_comp_gmc = scale(itt_comp, center = T, scale = F))
 ```
 
-# Stereotyping
+# Projection for comparison (no stereotyping) {.tabset .tabset-fade .tabset-pills}
 
-## BFI
-
-### Targ x  threat no stereo
+## Only composite
 
 ```{r}
 data_bfi <- clean_data_bfi %>% 
@@ -73,16 +71,85 @@ data_bfi <- clean_data_bfi %>%
   unique() %>% 
   na.omit() 
 
+bfi_nostereo_comp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = data_bfi)
+summary(bfi_nostereo_comp)
+tab_model(bfi_nostereo_comp)
+```
+
+
+### Simple Slopes
+
+```{r}
+threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
+simpslopes_bfi_nostereo2 <- emtrends(bfi_nostereo_comp, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = c(threat_levels))
+
+
+simpslopes_bfi_nostereo2
+pairs(simpslopes_bfi_nostereo2)
+```
+
+### Visualization
+
+```{r}
+bfi_nostereo_comp_df <- effect("bfi_self_pmc:itt_comp_gmc",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07)),
+                         mod = bfi_nostereo_comp)
+
+bfi_nostereo_comp_df <- as.data.frame(bfi_nostereo_comp_df)
+bfi_nostereo_comp_df$itt_comp_gmc <- as.factor(bfi_nostereo_comp_df$itt_comp_gmc)
+
+ggplot(bfi_nostereo_comp_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Threat composite",
+                        breaks = c("-1.07", "0", "1.07"), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat",
+         subtitle = "Using the BFI",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+### Residuals
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(bfi_nostereo_comp), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects (here random intercept):
+qqnorm(ranef(bfi_nostereo_comp)$sub_id$bfi_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+# Checking residuals for intercept
+qqnorm(ranef(bfi_nostereo_comp)$sub_id$`(Intercept)`,
+       main="Q-Q plot for the random intercept")
+```
+
+## Target condition  x composite
+
+```{r}
 bfi_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition +
                      (bfi_self_pmc | sub_id), data = data_bfi)
 summary(bfi_nostereo)
 tab_model(bfi_nostereo)
 ```
 
-#### Simple Slopes
+### Simple Slopes
 
 ```{r}
-threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
 targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
 simpslopes_bfi_nostereo1 <- emtrends(bfi_nostereo, ~ itt_comp_gmc*target_condition,
                               var ="bfi_self_pmc",
@@ -93,7 +160,7 @@ simpslopes_bfi_nostereo1
 pairs(simpslopes_bfi_nostereo1)
 ```
 
-#### Visualization
+### Visualization
 
 ```{r}
 bfi_no_stereo_df <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
@@ -107,25 +174,28 @@ bfi_no_stereo_df <- as.data.frame(bfi_no_stereo_df)
 bfi_no_stereo_df$itt_comp_gmc <- as.factor(bfi_no_stereo_df$itt_comp_gmc)
 bfi_no_stereo_df$target_condition <- as.factor(bfi_no_stereo_df$target_condition)
 
-threat_labels <- c("-1.07" = "Low target \n level threat",
-                   "0" = "Average target \n level threat",
-                   "1.07" = "High target \n level threat")
+bfi_no_stereo_df %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
 
-ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = target_condition)) +
+target_labels <- c("CONTROL" = "Control",
+                   "WARM" = "Warm",
+                   "LOSS" = "Loss")
+
+ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
   geom_smooth(method = "lm", 
                 size = .7, 
                 se = FALSE,
                 colour = "black", 
-                aes(linetype = target_condition)) +
+                aes(linetype = itt_comp_gmc)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  facet_wrap(~itt_comp_gmc,
-             labeller = labeller(itt_comp_gmc = threat_labels)) +
-  scale_linetype_manual("Target condition",
-                        breaks = c("CONTROL", "WARM", "LOSS"), 
-                       labels = c("Control",
-                                  "Warm",
-                                  "Loss"),
+  facet_wrap(~target_condition,
+             labeller = labeller(target_condition = target_labels)) +
+  scale_linetype_manual("Threat composite",
+                        breaks = c("-1.07", "0", "1.07"), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
@@ -135,7 +205,7 @@ ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = target_condition)) +
        y = "BFI responses for target")
 ```
 
-#### Residuals
+### Residuals
 
 ```{r}
 # checking normality of conditional residuals
@@ -152,91 +222,11 @@ qqnorm(ranef(bfi_nostereo)$sub_id$`(Intercept)`,
 
 More normal, but a little tail
 
-### With Stereo
-
-```{r}
-bfi_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition*bfi_stereo_pmc +
-                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = data_bfi)
-summary(bfi_stereo)
-tab_model(bfi_stereo)
-```
-
-
-#### Simple Slopes
-
-```{r}
-simpslopes_bfi_stereo1 <- emtrends(bfi_stereo, ~ itt_comp_gmc*target_condition,
-                              var ="bfi_self_pmc",
-                              at = c(targ_levels, threat_levels))
-
-
-simpslopes_bfi_stereo1
-pairs(simpslopes_bfi_stereo1)
-```
-
-With residual counter-projection, people do not project nor counter-project when they report higher than average threat. Otherwise, people project normally. Though slightly different from predicted, this demonstrates that threat does reduce projection after accounting for stereotyping with those who perceive high threat, but not others. However, there is not a residual effect of counter-projection with the BFI - which I believe is consistent with PSPB.
-
-Is this consistent with PSPB?
-
-#### Visualization
-
-```{r}
-bfi_stereo_df <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
-                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
-                                        target_condition = c("CONTROL",
-                                                             "WARM",
-                                                             "LOSS")),
-                         mod = bfi_stereo)
-
-bfi_stereo_df <- as.data.frame(bfi_stereo_df)
-bfi_stereo_df$itt_comp_gmc <- as.factor(bfi_stereo_df$itt_comp_gmc)
-bfi_stereo_df$target_condition <- as.factor(bfi_stereo_df$target_condition)
-
-ggplot(bfi_stereo_df, aes(bfi_self_pmc, fit, group = target_condition)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = FALSE,
-                colour = "black", 
-                aes(linetype = target_condition)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  facet_wrap(~itt_comp_gmc,
-             labeller = labeller(itt_comp_gmc = threat_labels)) +
-  scale_linetype_manual("Target condition",
-                        breaks = c("CONTROL", "WARM", "LOSS"), 
-                       labels = c("Control",
-                                  "Warm",
-                                  "Loss"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(title = "Residual projection by target-level threat and target condition",
-         subtitle = "Using the BFI; After accounting for stereotyping",
-       x = "BFI responses for self",
-       y = "BFI responses for target")
-```
-
-#### Residuals
-
-```{r}
-# checking normality of conditional residuals
-qqnorm(residuals(bfi_stereo), main="Q-Q plot for conditional residuals")
-
-# checking the normality of the random effects 
-qqnorm(ranef(bfi_stereo)$sub_id$bfi_self_pmc,
-       main="Q-Q plot for the self random effect")
-
-qqnorm(ranef(bfi_stereo)$sub_id$bfi_stereo_pmc,
-       main="Q-Q plot for the stereotyping random effect")
-
-# Checking residuals for intercept
-qqnorm(ranef(bfi_stereo)$sub_id$`(Intercept)`,
-       main="Q-Q plot for the random intercept")
-```
-
-Definitely a tail, but only a few points, so most likely robust; stereo is the worst, may need to transform it
+# Residual Counter-projection (with steroetyping) {.tabset .tabset-fade .tabset-pills}
 
 ## Only composite
+
+### Results
 
 ```{r}
 bfi_stereo_comp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
@@ -246,7 +236,7 @@ tab_model(bfi_stereo_comp)
 ```
 
 
-#### Simple Slopes
+### Simple Slopes
 
 ```{r}
 simpslopes_bfi_stereo2 <- emtrends(bfi_stereo_comp, ~ itt_comp_gmc,
@@ -258,12 +248,12 @@ simpslopes_bfi_stereo2
 pairs(simpslopes_bfi_stereo2)
 ```
 
-#### Visualization
+### Visualization
 
 ```{r}
 bfi_stereo_comp_df <- effect("bfi_self_pmc:itt_comp_gmc",
                          xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07)),
-                         mod = bfi_stereo)
+                         mod = bfi_stereo_comp)
 
 bfi_stereo_comp_df <- as.data.frame(bfi_stereo_comp_df)
 bfi_stereo_comp_df$itt_comp_gmc <- as.factor(bfi_stereo_comp_df$itt_comp_gmc)
@@ -290,7 +280,7 @@ ggplot(bfi_stereo_comp_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
        y = "BFI responses for target")
 ```
 
-#### Residuals
+### Residuals
 
 ```{r}
 # checking normality of conditional residuals
@@ -310,37 +300,111 @@ qqnorm(ranef(bfi_stereo_comp)$sub_id$`(Intercept)`,
 
 Also seems to have slight tails, basically when stereotyping is added to the model
 
-NEED TO UPDATE FOR ELI
+## Composite x Target Condition
+
+### Results
+
+```{r}
+bfi_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition*bfi_stereo_pmc +
+                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = data_bfi)
+summary(bfi_stereo)
+tab_model(bfi_stereo)
+```
+
 
 ### Simple Slopes
 
 ```{r}
-simpslopes_eli_nostereo1 <- emtrends(eli_nostereo, ~ itt_comp_gmc,
-                              var ="eli_self_pmc",
-                              at = list(threat_levels,
-                                        target_condition = c("CONTROL", 
-                                                             "LOSS", 
-                                                             "WARM")))
+simpslopes_bfi_stereo1 <- emtrends(bfi_stereo, ~ itt_comp_gmc*target_condition,
+                              var ="bfi_self_pmc",
+                              at = c(targ_levels, threat_levels))
 
-simpslopes_eli_stereo1
+
+simpslopes_bfi_stereo1
+pairs(simpslopes_bfi_stereo1)
 ```
 
-Replicating PSPB, even after accounting for stereotyping, we continue to see counter-projection with the ELI. As predicted, it is those with high-threat who continue to have residual counter-projection after including stereotyping in the model. Those with average or low threat continue to positively project. 
+With residual counter-projection, people do not project nor counter-project when they report higher than average threat. Otherwise, people project normally. Though slightly different from predicted, this demonstrates that threat does reduce projection after accounting for stereotyping with those who perceive high threat, but not others. However, there is not a residual effect of counter-projection with the BFI - which I believe is consistent with PSPB.
 
-## ELI
+Is this consistent with PSPB?
 
-### Targ x  threat no stereo
+### Visualization
 
 ```{r}
-data_eli <- clean_data_eli %>% 
-  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
-         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc) %>% 
-  unique() %>% 
-  na.omit() 
+bfi_stereo_df <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = bfi_stereo)
 
-eli_nostereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*target_condition +
-                     (0 + eli_self_pmc | sub_id), data = data_eli)
-summary(eli_nostereo)
-tab_model(eli_nostereo)
+bfi_stereo_df <- as.data.frame(bfi_stereo_df)
+bfi_stereo_df$itt_comp_gmc <- as.factor(bfi_stereo_df$itt_comp_gmc)
+bfi_stereo_df$target_condition <- as.factor(bfi_stereo_df$target_condition)
+
+bfi_stereo_df %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
+
+ggplot(bfi_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~target_condition,
+             labeller = labeller(target_condition = target_labels)) +
+  scale_linetype_manual("Threat composite",
+                        breaks = c("-1.07", "0", "1.07"), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted"))+
+    labs(title = "Residual projection by target-level threat and target condition",
+         subtitle = "Using the BFI; After accounting for stereotyping",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
 ```
 
+### Residuals
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(bfi_stereo), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects 
+qqnorm(ranef(bfi_stereo)$sub_id$bfi_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+qqnorm(ranef(bfi_stereo)$sub_id$bfi_stereo_pmc,
+       main="Q-Q plot for the stereotyping random effect")
+
+# Checking residuals for intercept
+qqnorm(ranef(bfi_stereo)$sub_id$`(Intercept)`,
+       main="Q-Q plot for the random intercept")
+```
+
+Definitely a tail, but only a few points, so most likely robust; stereo is the worst, may need to transform it
+
+# Multicolinearity of predictors
+
+```{r}
+cor_bfi <- data_bfi %>% 
+  select(bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  unique()
+
+correlations_preds <- cor(cor_bfi)
+
+corrplot(correlations_preds, 
+         is.corr = TRUE, 
+         #method = "number", 
+         method = 'color',
+         tl.cex = .85,
+         tl.col = 'black',
+         addgrid.col = 'white',
+         addCoef.col = 'grey50')
+
+```
