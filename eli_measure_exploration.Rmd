@@ -77,117 +77,127 @@ clean_data_eli %<>%
          itt_comp_gmc = scale(itt_comp, center = T, scale = F))
 ```
 
-# Exploring relationship of ELI vars with politics {.tabset .tabset-fade .tabset-pills}
+# Exploring relationship of ELI vars with each other and political orientation {.tabset .tabset-fade .tabset-pills}
+
+## Self
 
 ```{r}
-eli_wide <- clean_data %>% 
+eli_wide_self <- clean_data_eli %>% 
   select(sub_id, eli_number, eli_self, pol_orient_1, pol_orient_2, pol_orient_3) %>% 
   unique() %>% 
   pivot_wider(names_from = eli_number, values_from = eli_self) %>% 
-  select(-sub_id)
+  select(-sub_id) %>% 
+  rename("Politics: Overall" = pol_orient_1,
+         "Politics: Social" = pol_orient_2,
+         "Politics: Economic" = pol_orient_3,
+         "ElI 1" = `1`,
+         "ElI 2" = `2`,
+         "ElI 3" = `3`,
+         "ElI 4" = `4`,
+         "ElI 5" = `5`,
+         "ElI 6" = `6`,
+         "ElI 7" = `7`,
+         "ElI 8" = `8`,
+         "ElI 9" = `9`,
+         "ElI 10" = `10`)
 
-eli_pol_cor <- cor(eli_wide)
+eli_pol_cor <- cor(eli_wide_self)
 
-eli_pol_cor_plot <- corrplot(eli_pol_cor, method = "number")
-
-colnames(eli_pol_cor_plot) = rep(c('Politics: Overall',
-                                       'Politics: Social',
-                                       'Politics: Economic',
-                                       'ELI 1',
-                                       'ELI 2',
-                                       'ELI 3',
-                                       'ELI 4',
-                                       'ELI 5',
-                                       'ELI 6',
-                                       'ELI 7',
-                                       'ELI 8',
-                                       'ELI 9',
-                                       'ELI 10'))
-
-rownames(eli_pol_cor_plot) = rep(c('Politics: Overall',
-                                       'Politics: Social',
-                                       'Politics: Economic',
-                                       'ELI 1',
-                                       'ELI 2',
-                                       'ELI 3',
-                                       'ELI 4',
-                                       'ELI 5',
-                                       'ELI 6',
-                                       'ELI 7',
-                                       'ELI 8',
-                                       'ELI 9',
-                                       'ELI 10'))
-corrplot(eli_pol_cor_plot, 
+corrplot(eli_pol_cor, 
          is.corr = TRUE, 
          #method = "number", 
          method = 'color',
-         col.lim = c(0, 1),
          tl.cex = .85,
          tl.col = 'black',
          addgrid.col = 'white',
          addCoef.col = 'grey50')
 ```
 
-Responses on the ELI are not related to responses on the political orientation questions.
-
-Replicate analyses from Pilot using other measures in this doc
-
-# Exploring structure of ELI {.tabset .tabset-fade .tabset-pills}
-
-## Self
-
-```{r}
-eli_wide_self <- clean_data %>% 
-  select(sub_id, eli_number, eli_self) %>% 
-  unique() %>% 
-  pivot_wider(names_from = eli_number, values_from = eli_self) %>% 
-  select(sub_id, "1":"10") %>% 
-  unique() %>% 
-  select(-sub_id)
-
-eli_self_matrix_cor <- cor(eli_wide_self)
-
-eli_self_cor_plot <- corrplot(eli_self_matrix_cor, method = "number")
-```
-
-Pretty uncorrelated, makes them appear orthogonal
+Responses on the ELI are not related to responses on the political orientation questions nor each other (aka orthogonal)
 
 ## Target
 
 ```{r}
-eli_wide_targ <- clean_data %>% 
-  select(sub_id, eli_number, eli_targ) %>% 
+eli_wide_targ <- clean_data_eli %>% 
+  select(sub_id, eli_number, eli_targ, pol_orient_1, pol_orient_2, pol_orient_3) %>% 
   unique() %>% 
   pivot_wider(names_from = eli_number, values_from = eli_targ) %>% 
-  select(sub_id, "1":"10") %>% 
-  unique() %>% 
-  select(-sub_id)
+  select(-sub_id) %>% 
+   rename("Politics: Overall" = pol_orient_1,
+         "Politics: Social" = pol_orient_2,
+         "Politics: Economic" = pol_orient_3,
+         "ElI 1" = `1`,
+         "ElI 2" = `2`,
+         "ElI 3" = `3`,
+         "ElI 4" = `4`,
+         "ElI 5" = `5`,
+         "ElI 6" = `6`,
+         "ElI 7" = `7`,
+         "ElI 8" = `8`,
+         "ElI 9" = `9`,
+         "ElI 10" = `10`)
 
 eli_targ_matrix_targ <- cor(eli_wide_targ)
 
-eli_targ_cor_plot <- corrplot(eli_targ_matrix_targ, method = "number")
+corrplot(eli_targ_matrix_targ, 
+         is.corr = TRUE, 
+         #method = "number", 
+         method = 'color',
+         tl.cex = .85,
+         tl.col = 'black',
+         addgrid.col = 'white',
+         addCoef.col = 'grey50')
 ```
 
-The target has some slightly higher correlations than the self, but highestbeing .31, so still not very high...
+The target has slightly higher correlations overall for the ELI, but lower ones in relation to political orientation
 
 ## Stereo
 
 ```{r}
-eli_wide_stereo <- clean_data %>% 
-  select(sub_id, eli_number, eli_stereo) %>% 
+eli_wide_stereo <- clean_data_eli %>% 
+  select(sub_id, eli_number, eli_stereo, pol_orient_1, pol_orient_2, pol_orient_3) %>% 
   unique() %>% 
   pivot_wider(names_from = eli_number, values_from = eli_stereo) %>% 
-  select(sub_id, "1":"10") %>% 
-  unique() %>% 
-  select(-sub_id)
+     rename("Politics: Overall" = pol_orient_1,
+         "Politics: Social" = pol_orient_2,
+         "Politics: Economic" = pol_orient_3,
+         "ElI 1" = `1`,
+         "ElI 2" = `2`,
+         "ElI 3" = `3`,
+         "ElI 4" = `4`,
+         "ElI 5" = `5`,
+         "ElI 6" = `6`,
+         "ElI 7" = `7`,
+         "ElI 8" = `8`,
+         "ElI 9" = `9`,
+         "ElI 10" = `10`) %>% 
+    select(-sub_id)
 
 eli_stereo_matrix_stereo <- cor(eli_wide_stereo)
 
-eli_stereo_cor_plot <- corrplot(eli_stereo_matrix_stereo, method = "number")
+corrplot(eli_stereo_matrix_stereo, 
+         is.corr = TRUE, 
+         #method = "number", 
+         method = 'color',
+         tl.cex = .85,
+         tl.col = 'black',
+         addgrid.col = 'white',
+         addCoef.col = 'grey50')
 
 ```
 
-Again, higher correlations than for the self, but still only .35 as the highest.
+Again, higher correlations than for the self, but still only .35 as the highest. Low correlations with politics, but higher than with the target.
+
+# Descriptives per condition
+
+```{r}
+eli_data <- clean_data_eli %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
+         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
+         analog_condition, itt_comp) %>% 
+  unique() %>% 
+  na.omit() 
+```
 
 # Exploring variance in intercepts for ELI
 
@@ -196,12 +206,6 @@ Again, higher correlations than for the self, but still only .35 as the highest.
 ## Random intercept
 
 ```{r}
-eli_data <- clean_data_eli %>% 
-  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
-         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
-         analog_condition) %>% 
-  unique() %>% 
-  na.omit() 
 
 eli_randint_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
                      (1 | sub_id), 
@@ -250,74 +254,43 @@ summary(eli_randslopes_test)
 
 Running without the random intercept fixes the issue
 
-## ELI
+# Running models with random slopes/no intercepts {.tabset .tabset-fade .tabset-pills}
 
-### Correlation matrix (multicolinearity)
-
-```{r}
-cor_predictors_eli <- clean_data_eli %>% 
-  select(sub_id, eli_number, eli_self, eli_targ, itt_comp) %>% 
-  unique() %>% 
-  na.omit() %>% 
-  select(eli_self, eli_targ, itt_comp)
-
-cor_matrix_predictors_eli <- cor(cor_predictors_eli)
-cor_matrix_predictors_eli
-
-cor_plot_predictors_eli <- corrplot(cor_matrix_predictors_eli, method = "number")
-
-colnames(cor_plot_predictors_eli) = rep(c('ELI: Self',
-                                      'ELI: Target',
-                                      'Threat Composite'))
-
-rownames(cor_plot_predictors_eli) = rep(c('ELI: Self',
-                                      'ELI: Target',
-                                      'Threat Composite'))
-corrplot(cor_plot_predictors_eli, 
-         is.corr = TRUE, 
-         #method = "number", 
-         method = 'color',
-         col.lim = c(0, 1),
-         tl.cex = .85,
-         tl.col = 'black',
-         addgrid.col = 'white',
-         addCoef.col = 'grey50')
-```
-
-### MLM Results
+## Threat composite 
 
 ```{r}
-model1_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc + # itt does not work as a RE; model does not converge
+comp_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc | sub_id), 
                    data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
 
 
-summary(model1_eli_randslopes)
-tab_model(model1_eli_randslopes,
+summary(comp_eli_randslopes)
+tab_model(comp_eli_randslopes,
           digits = 3)
 ```
 
-#### Simple Slopes
+### Simple slopes
 
 ```{r}
-mod1_simpslopes_eli <- emtrends(model1_eli_randslopes, ~ itt_comp_gmc,
+threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
+comp_simpslopes_eli <- emtrends(comp_eli_randslopes, ~ itt_comp_gmc,
                               var ="eli_self_pmc",
                               at = threat_levels)
 
-mod1_simpslopes_eli
+comp_simpslopes_eli 
 ```
 
-#### Visualization
+### Visualization
 
 ```{r}
-mod1_eli_maineffect <- effect("eli_self_pmc:itt_comp_gmc",
+comp_eli_maineffect <- effect("eli_self_pmc:itt_comp_gmc",
                          xlevels = list(itt_comp_gmc = c(-1.07, 0, 1.07)),
-                         mod = model1_eli_randslopes)
+                         mod = comp_eli_randslopes)
 
-mod1_eli_maineffect <- as.data.frame(mod1_eli_maineffect)
-mod1_eli_maineffect$itt_comp_gmc <- as.factor(mod1_eli_maineffect$itt_comp_gmc)
+comp_eli_maineffect <- as.data.frame(comp_eli_maineffect)
+comp_eli_maineffect$itt_comp_gmc <- as.factor(comp_eli_maineffect$itt_comp_gmc)
 
-ggplot(mod1_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
+ggplot(comp_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
   geom_smooth(method = "lm", 
                 size = .7, 
                 se = FALSE,
@@ -325,7 +298,7 @@ ggplot(mod1_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
                 aes(linetype = itt_comp_gmc)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target-level \nthreat",
+  scale_linetype_manual("Target-level threat",
                         breaks = c(-1.07, 0, 1.07), 
                        labels = c("Low",
                                   "Average",
@@ -339,22 +312,422 @@ ggplot(mod1_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
        y = "ELI responses for target")
 ```
 
-### ELI
+### Assumptions
 
 ```{r}
-mod3a_eli <- lmer(eli_targ ~ eli_self_pmc*analog_condition*target_condition +
-       (0 + eli_self_pmc | sub_id), data = eli_data)
-summary(mod3a_eli)
+# checking normality of conditional residuals
+qqnorm(residuals(comp_eli_randslopes), main="Q-Q plot for conditional residuals")
 
-tab_model(mod3a_eli)
+# checking the normality of the random effects (here random intercept):
+qqnorm(ranef(comp_eli_randslopes)$sub_id$eli_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+plot_model(comp_eli_randslopes, type='diag')
 ```
- 
- ### ELI
+
+Also seems evenly spread but diagonal
+
+## Threat composite x target condition
 
 ```{r}
-mod3b_eli <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*itt_comp_gmc +
-       (0 + eli_self_pmc | sub_id), data = eli_data)
-summary(mod3b_eli)
+compcond_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*target_condition + # itt does not work as a RE; model does not converge
+                     (0 + eli_self_pmc | sub_id), 
+                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
 
-tab_model(mod3b_eli)
+
+summary(compcond_eli_randslopes)
+tab_model(compcond_eli_randslopes,
+          digits = 3)
 ```
+
+### Simple Slopes
+
+```{r}
+targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
+simpslopes_eli_nostereo_compcond <- emtrends(compcond_eli_randslopes, ~ itt_comp_gmc*target_condition,
+                              var ="eli_self_pmc",
+                              at = c(targ_levels, threat_levels))
+
+
+simpslopes_eli_nostereo_compcond 
+pairs(simpslopes_eli_nostereo_compcond)
+```
+
+### Assumptions
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(compcond_eli_randslopes), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects
+qqnorm(ranef(compcond_eli_randslopes)$sub_id$eli_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+plot_model(compcond_eli_randslopes, type='diag')
+```
+
+Heavy tail?
+
+Also seems evenly spread but diagonal
+
+### Visualization
+
+```{r}
+eli_nostereo_int <- effect("eli_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = compcond_eli_randslopes)
+
+eli_nostereo_int <- as.data.frame(eli_nostereo_int)
+eli_nostereo_int$itt_comp_gmc <- as.factor(eli_nostereo_int$itt_comp_gmc)
+eli_nostereo_int$target_condition <- as.factor(eli_nostereo_int$target_condition)
+
+eli_nostereo_int %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
+
+target_labels <- c("CONTROL" = "Control",
+                   "WARM" = "Warm",
+                   "LOSS" = "Loss")
+
+ggplot(eli_nostereo_int, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~target_condition,
+             labeller = labeller(target_condition = target_labels)) +
+  scale_linetype_manual("Threat composite",
+                        breaks = c("-1.07", "0", "1.07"), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat and target condition",
+         subtitle = "Accounting for stereotyping",
+       x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+#### Raw data
+
+```{r}
+threat_descrip <- describe(eli_data$itt_comp_gmc)
+onesdlow <- threat_descrip$mean - threat_descrip$sd
+onesdlow
+onesdhigh <- threat_descrip$mean + threat_descrip$sd
+onesdhigh
+eli_descrip <- eli_data %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, target_condition, itt_comp_gmc) %>% 
+  mutate(itt_comp_cat = as.factor(ifelse(itt_comp_gmc < onesdlow, "Low",
+                               ifelse(itt_comp_gmc >= onesdlow & itt_comp_gmc <= onesdhigh, "Ave",
+                                      ifelse(itt_comp_gmc > onesdhigh, "High", NA)))))
+
+
+  # group_by(bfi_self_pmc, itt_comp_gmc, target_condition) %>% 
+  # mutate(mean = mean(bfi_targ_pmc),
+  #        sd = sd(bfi_targ_pmc))
+
+eli_descrip %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
+
+ggplot(eli_descrip, aes(eli_self_pmc, eli_targ_pmc, group = itt_comp_cat)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                colour = "black", 
+              se = FALSE,
+                aes(linetype = itt_comp_cat)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~target_condition,
+             labeller = labeller(target_condition = target_labels))
+```
+
+### Responses in warm condition by threat comp
+
+#### Low threat for self
+
+```{r}
+filter_warmlow <- eli_data %>% 
+  filter(target_condition == "WARM" &
+           itt_comp_gmc < -1.07)
+
+hist(filter_warmlow$eli_self_pmc)
+```
+
+#### Low threat for target
+
+```{r}
+hist(filter_warmlow$eli_targ_pmc)
+```
+
+These are different... corresponds to why I am seeing counter-projection, but just doesn't make sense.
+
+#### Ave threat for self
+
+```{r}
+filter_warmave <- eli_data %>% 
+  filter(target_condition == "WARM" &
+           itt_comp_gmc > -1.07 & itt_comp_gmc < 1.07)
+
+hist(filter_warmave$eli_self_pmc)
+```
+
+#### Ave threat for target 
+
+```{r}
+hist(filter_warmave$eli_targ_pmc)
+```
+
+These are pretty similiar, which corresponds to why we are seeing projection
+
+#### High threat for self
+
+```{r}
+filter_warmhigh <- eli_data %>% 
+  filter(target_condition == "WARM" &
+           itt_comp_gmc > 1.07)
+
+hist(filter_warmhigh$eli_self_pmc)
+```
+
+#### High threat for target
+
+```{r}
+hist(filter_warmhigh$eli_targ_pmc)
+```
+
+Different enough that I'm not suprised we are seeing projection, but is less different than with the low threat... which just seems so weird
+
+## Analog x threat composite
+
+```{r}
+analogcomp_eli_randslopes <- lmer(eli_targ ~ eli_self_pmc*analog_condition*itt_comp_gmc +
+       (0 + eli_self_pmc | sub_id), data = eli_data)
+summary(analogcomp_eli_randslopes)
+
+tab_model(analogcomp_eli_randslopes)
+```
+
+## Analog x target condition
+
+```{r}
+analogcond_eli_randslopes <- lmer(eli_targ ~ eli_self_pmc*analog_condition*target_condition +
+       (0 + eli_self_pmc | sub_id), data = eli_data)
+summary(analogcond_eli_randslopes)
+
+tab_model(analogcond_eli_randslopes)
+```
+
+## Analog x threat composite x target condition
+
+```{r}
+analogcompcond_eli_randslopes <- lmer(eli_targ ~ eli_self_pmc*analog_condition*target_condition*itt_comp_gmc +
+       (0 + eli_self_pmc | sub_id), data = eli_data)
+summary(analogcompcond_eli_randslopes)
+
+tab_model(analogcompcond_eli_randslopes)
+```
+
+The interaction significant in the 4-way is not in the 3-way model; it could be because of variance removed due to itt_comp... or it could be because the model is overfit/underpowered with this number of predictors. I'm not sure I trust ANY effect with analog perspective-taking
+
+# Correlation matrix (multicolinearity) {.tabset .tabset-fade .tabset-pills}
+
+```{r}
+cor_predictors_eli <- clean_data_eli %>% 
+  select(sub_id, eli_number, eli_self, eli_targ, itt_comp) %>% 
+  unique() %>% 
+  na.omit() %>% 
+  select(eli_self, eli_targ, itt_comp) %>% 
+  rename("ELI: Self" = eli_self,
+         "ELI: Target" = eli_targ,
+         "Threat Composite" = itt_comp)
+
+cor_matrix_predictors_eli <- cor(cor_predictors_eli)
+
+corrplot(cor_matrix_predictors_eli, 
+         is.corr = TRUE, 
+         #method = "number", 
+         method = 'color',
+         tl.cex = .85,
+         tl.col = 'black',
+         addgrid.col = 'white',
+         addCoef.col = 'grey50')
+```
+
+# Residual counter-projection with ELI {.tabset .tabset-fade .tabset-pills}
+
+## Threat composite
+
+```{r}
+comp_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc + # itt does not work as a RE; model does not converge
+                     (0 + eli_self_pmc + eli_stereo_pmc | sub_id), 
+                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
+
+
+summary(comp_eli_stereo)
+tab_model(comp_eli_stereo,
+          digits = 3)
+```
+
+### Simple slopes
+
+```{r}
+comp_stereo_simpslopes_eli <- emtrends(comp_eli_stereo, ~ itt_comp_gmc,
+                              var ="eli_self_pmc",
+                              at = threat_levels)
+
+comp_stereo_simpslopes_eli
+```
+
+### Visualization
+
+```{r}
+comp_stereo_eli_maineffect <- effect("eli_self_pmc:itt_comp_gmc",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0, 1.07)),
+                         mod = comp_eli_stereo)
+
+comp_stereo_eli_maineffect <- as.data.frame(comp_stereo_eli_maineffect)
+comp_stereo_eli_maineffect$itt_comp_gmc <- as.factor(comp_stereo_eli_maineffect$itt_comp_gmc)
+
+ggplot(comp_stereo_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target-level threat",
+                        breaks = c(-1.07, 0, 1.07), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat",
+         subtitle = "Using the ELI",
+       x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+### Assumptions
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(comp_eli_stereo), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects:
+qqnorm(ranef(comp_eli_stereo)$sub_id$eli_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+# looking at random effect for stereo:
+qqnorm(ranef(comp_eli_stereo)$sub_id$eli_stereo_pmc,
+       main="Q-Q plot for the self random effect")
+
+plot_model(comp_eli_stereo, type='diag')
+```
+
+Heavy tail and outliers?
+
+## Threat composite x targ condition
+
+```{r}
+compcond_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc*target_condition + # itt does not work as a RE; model does not converge
+                     (0 + eli_self_pmc + eli_stereo_pmc | sub_id), 
+                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
+
+
+summary(compcond_eli_stereo)
+tab_model(compcond_eli_stereo,
+          digits = 3)
+```
+
+Slight dip to the left but relatively spread, not funnel shape
+
+### Simple Slopes
+
+```{r}
+simpslopes_eli_stereo_compcond <- emtrends(compcond_eli_stereo, ~ itt_comp_gmc*target_condition,
+                              var ="eli_self_pmc",
+                              at = c(targ_levels, threat_levels))
+
+
+simpslopes_eli_stereo_compcond
+pairs(simpslopes_eli_stereo_compcond)
+```
+
+### Visualization
+
+```{r}
+
+# interactions::interact_plot(compcond_eli_stereo, pred = eli_self_pmc, modx = itt_comp_gmc, mod2 = target_condition, interval = TRUE)
+
+eli_stereo_int <- effect("eli_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = compcond_eli_stereo)
+
+eli_stereo_int <- as.data.frame(eli_stereo_int)
+eli_stereo_int$itt_comp_gmc <- as.factor(eli_stereo_int$itt_comp_gmc)
+eli_stereo_int$target_condition <- as.factor(eli_stereo_int$target_condition)
+
+eli_stereo_int %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
+
+target_labels <- c("CONTROL" = "Control",
+                   "WARM" = "Warm",
+                   "LOSS" = "Loss")
+
+ggplot(eli_stereo_int, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~target_condition,
+             labeller = labeller(target_condition = target_labels)) +
+  scale_linetype_manual("Threat composite",
+                        breaks = c("-1.07", "0", "1.07"), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Residual projection by target-level threat and target condition",
+         subtitle = "Using the ELI; Accounting for stereotyping",
+       x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+### Assumptions
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(compcond_eli_stereo), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects:
+qqnorm(ranef(compcond_eli_stereo)$sub_id$eli_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+# looking at random effect for stereo:
+qqnorm(ranef(compcond_eli_stereo)$sub_id$eli_stereo_pmc,
+       main="Q-Q plot for the self random effect")
+
+plot_model(compcond_eli_stereo, type='diag')
+```
+
+This may be starting to take on a funnel shape, but not so severe that I think I need to be concerned
+
