@@ -61,36 +61,28 @@ cfa_vars <- clean_data_bfi %>%
   unique() %>% 
   na.omit() %>% 
   select(distance_coffee, distance_town, realistic_q, 
-         symbolic_q, explicit_targ, explicit_group)
+         symbolic_q, explicit_targ, explicit_group) 
 
-cor_matrix_cfa <- cor(cfa_vars)
+cor_df <- cfa_vars %>% 
+  rename("Distance: Coffee" = distance_coffee,
+         "Distance: Town" = distance_town,
+         "Realistic" = realistic_q,
+         "Symbolic" = symbolic_q,
+         "Explicit: Target" = explicit_targ,
+         "Explicit: Group" = explicit_group)
+
+
+cor_matrix_cfa <- cor(cor_df)
 cor_matrix_cfa
 
-cor_plot_cfa <- corrplot(cor_matrix_cfa, method = "number")
-
-colnames(cor_plot_cfa) = rep(c('Distance: Coffee', 
-                                       'Distance: Town',
-                                       'Realistic',
-                                       'Symbolic',
-                                       'Explicit: Target',
-                                       'Explicit: Group'))
-
-rownames(cor_plot_cfa) = rep(c('Distance: Coffee', 
-                                       'Distance: Town',
-                                       'Realistic',
-                                       'Symbolic',
-                                       'Explicit: Target',
-                                       'Explicit: Group'))
-corrplot(cor_plot_cfa, 
+corrplot(cor_matrix_cfa, 
          is.corr = TRUE, 
          #method = "number", 
          method = 'color',
-         col.lim = c(0, 1),
          tl.cex = .85,
          tl.col = 'black',
          addgrid.col = 'white',
          addCoef.col = 'grey50')
-
 ```
 
 *This corresponds to factorability, an assumption of Factor Analysis*
