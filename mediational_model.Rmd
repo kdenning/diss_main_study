@@ -67,123 +67,15 @@ wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 
 # Cleaning data using functions
 long_data_bfi <- get_wrangled_bfi(wide_data)
-long_data_eli <- get_wrangled_eli(wide_data)
 
 clean_vars_bfi <- get_vars_cleaned(long_data_bfi)
-clean_vars_eli <- get_vars_cleaned(long_data_eli)
 
 clean_data_bfi <- remove_participants(clean_vars_bfi)
-clean_data_eli <- remove_participants(clean_vars_eli)
 
 clean_data_bfi %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
          itt_comp_gmc = itt_comp - mean(itt_comp, na.rm = TRUE))
-
-clean_data_eli %<>%    
-  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
-         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
 ```
-
-# Exploring variance in intercepts for ELI
-
- https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html
-
-## Random intercept
-
-```{r}
-eli_data <- clean_data_eli %>% 
-  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
-         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
-         analog_condition) %>% 
-  unique() %>% 
-  na.omit() 
-
-eli_randint_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
-                     (1 | sub_id), 
-                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
-
-summary(eli_randint_test)
-```
-
-The random variance for the intercept is 0, which is causing the singularity. This does not occur with the BFI. The data looks normal in the descriptives document. Checking some more stuff below.
-
-### Checking individual intercepts/slopes
-
-*Person mean centered variables*
-
-```{r}
-eli_coeffs_per_sub_c  <- lmList(eli_targ_pmc ~ 1 + eli_self_pmc | sub_id, eli_data)
-eli_coeffs_per_sub_c
-```
-
-*Uncentered variables*
-
-```{r}
-eli_coeffs_per_sub  <- lmList(eli_targ ~ 1 + eli_self | sub_id, eli_data)
-eli_coeffs_per_sub
-```
-
-There seems to be variability in the intercepts, even though lmer is not finding it.
-
-### Scatterplot of variables
-
-```{r}
-ggplot(clean_data_eli, aes(eli_self_pmc, eli_targ_pmc)) +
-  geom_point()
-```
-
-## Random Slopes/No random intercept
-
-```{r}
-eli_randslopes_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
-                     (0 + eli_self_pmc | sub_id), 
-                   data = eli_data) 
-
-
-summary(eli_randslopes_test)
-```
-
-Running without the random intercept fixes the issue
-
-# Model 1: Threat on Counter-projection
-
-## BFI
-
-### Correlation matrix (multicolinearity)
-
-```{r}
-cor_predictors1 <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_self, bfi_targ, itt_comp) %>% 
-  unique() %>% 
-  na.omit() %>% 
-  select(bfi_self, bfi_targ, itt_comp)
-
-cor_matrix_predictors1 <- cor(cor_predictors1)
-cor_matrix_predictors1
-
-cor_plot_predictors1 <- corrplot(cor_matrix_predictors1, method = "number")
-
-colnames(cor_plot_predictors1) = rep(c('BFI: Self',
-                                       'BFI: Target',
-                                       'Threat Composite'))
-
-rownames(cor_plot_predictors1) = rep(c('BFI: Self',
-                                       'BFI: Target',
-                                       'Threat Composite'))
-corrplot(cor_plot_predictors1, 
-         is.corr = TRUE, 
-         #method = "number", 
-         method = 'color',
-         col.lim = c(0, 1),
-         tl.cex = .85,
-         tl.col = 'black',
-         addgrid.col = 'white',
-         addCoef.col = 'grey50')
-```
-
-### Level 1 residuals
-
-No predictors included; just projection
 
 ```{r}
 bfi_data <- clean_data_bfi %>% 
@@ -192,250 +84,48 @@ bfi_data <- clean_data_bfi %>%
          analog_condition) %>% 
   unique() %>% 
   na.omit() 
-
-l1_resid_mod <- lmer(bfi_targ_pmc ~ bfi_self_pmc+ 
-                     (bfi_self_pmc| sub_id), 
-                   data = bfi_data)
-
-
-# checking normality of conditional residuals
-qqnorm(residuals(l1_resid_mod, main="Q-Q plot for conditional residuals"))
-
-# checking the normality of the random effects (here random intercept):
-qqnorm(ranef(l1_resid_mod)$sub_id$bfi_self_pmc,
-       main="Q-Q plot for the self random effect")
-
-# Checking residuals for intercept
-qqnorm(ranef(l1_resid_mod)$sub_id$`(Intercept)`,
-       main="Q-Q plot for the random intercept")
-
 ```
 
-Normal, normal, intercept is lightly tailed/normal
+# Testing effects of individual models (no boot-strapping)
 
-### MLM Results
+## Direct Path C
 
 ```{r}
-model1_bfi <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc + 
-                     (bfi_self_pmc | sub_id), 
-                   data = bfi_data) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
-
-tab_model(model1_bfi,
-          digits = 3)
+path_c <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition +
+       (bfi_self_pmc| sub_id), data = bfi_data)
+summary(path_c)
+tab_model(pth_c)
 ```
 
-#### Simple Slopes
+## Indirect Path A
 
-```{r}
-threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
-mod1_simpslopes_bfi <- emtrends(model1_bfi, ~ itt_comp_gmc,
-                              var ="bfi_self_pmc",
-                              at = threat_levels)
-
-mod1_simpslopes_bfi
-```
-
-#### Visualization
-
-```{r}
-mod1_bfi_maineffect <- effect("bfi_self_pmc:itt_comp_gmc",
-                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07)),
-                         mod = model1_bfi)
-
-mod1_bfi_maineffect <- as.data.frame(mod1_bfi_maineffect)
-mod1_bfi_maineffect$itt_comp_gmc <- as.factor(mod1_bfi_maineffect$itt_comp_gmc)
-
-ggplot(mod1_bfi_maineffect, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = FALSE,
-                colour = "black", 
-                aes(linetype = itt_comp_gmc)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target-level \nthreat",
-                        breaks = c(-1.07, 0, 1.07), 
-                       labels = c("Low",
-                                  "Average",
-                                  "High"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(title = "Projection by target-level threat",
-         subtitle = "Using the BFI",
-       x = "BFI responses for self",
-       y = "BFI responses for target")
-```
-
-## ELI
-
-### Correlation matrix (multicolinearity)
-
-```{r}
-cor_predictors_eli <- clean_data_eli %>% 
-  select(sub_id, eli_number, eli_self, eli_targ, itt_comp) %>% 
-  unique() %>% 
-  na.omit() %>% 
-  select(eli_self, eli_targ, itt_comp)
-
-cor_matrix_predictors_eli <- cor(cor_predictors_eli)
-cor_matrix_predictors_eli
-
-cor_plot_predictors_eli <- corrplot(cor_matrix_predictors_eli, method = "number")
-
-colnames(cor_plot_predictors_eli) = rep(c('ELI: Self',
-                                      'ELI: Target',
-                                      'Threat Composite'))
-
-rownames(cor_plot_predictors_eli) = rep(c('ELI: Self',
-                                      'ELI: Target',
-                                      'Threat Composite'))
-corrplot(cor_plot_predictors_eli, 
-         is.corr = TRUE, 
-         #method = "number", 
-         method = 'color',
-         col.lim = c(0, 1),
-         tl.cex = .85,
-         tl.col = 'black',
-         addgrid.col = 'white',
-         addCoef.col = 'grey50')
-```
-
-### MLM Results
-
-```{r}
-model1_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc + # itt does not work as a RE; model does not converge
-                     (0 + eli_self_pmc | sub_id), 
-                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
-
-
-summary(model1_eli_randslopes)
-tab_model(model1_eli_randslopes,
-          digits = 3)
-```
-
-#### Simple Slopes
-
-```{r}
-mod1_simpslopes_eli <- emtrends(model1_eli_randslopes, ~ itt_comp_gmc,
-                              var ="eli_self_pmc",
-                              at = threat_levels)
-
-mod1_simpslopes_eli
-```
-
-#### Visualization
-
-```{r}
-mod1_eli_maineffect <- effect("eli_self_pmc:itt_comp_gmc",
-                         xlevels = list(itt_comp_gmc = c(-1.07, 0, 1.07)),
-                         mod = model1_eli_randslopes)
-
-mod1_eli_maineffect <- as.data.frame(mod1_eli_maineffect)
-mod1_eli_maineffect$itt_comp_gmc <- as.factor(mod1_eli_maineffect$itt_comp_gmc)
-
-ggplot(mod1_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = FALSE,
-                colour = "black", 
-                aes(linetype = itt_comp_gmc)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target-level \nthreat",
-                        breaks = c(-1.07, 0, 1.07), 
-                       labels = c("Low",
-                                  "Average",
-                                  "High"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(title = "Projection by target-level threat",
-         subtitle = "Using the ELI",
-       x = "ELI responses for self",
-       y = "ELI responses for target")
-```
-
-# Model 2: Instructions on threat
+Effect of analogous perspective-taking instructions on threat composite.
 
 ```{r}
 contrasts(clean_data_bfi$analog_condition)
-mod2_data <- clean_data_bfi %>% 
+path_a_data <- clean_data_bfi %>% 
   select(sub_id, itt_comp_gmc, analog_condition, target_condition) %>% 
   unique()
 
-mod2 <- lm(itt_comp_gmc ~ analog_condition, data = mod2_data)
-summary(mod2)
+path_a <- lm(itt_comp_gmc ~ analog_condition, data = path_a_data)
+summary(path_a)
 
-# mod2 <- aov(itt_comp_gmc ~ analog_condition, data = mod2_data) # Amw stats, does not matter that I used lm in mediation; probably easier for code
+# mod2 <- aov(itt_comp_gmc ~ analog_condition, data = mod2_data) # Aov stats, does not matter that I used lm in mediation bc the same; probably easier for code
 # summary(mod2)
 # emmeans(mod2, pairwise ~ analog_condition)
 ```
 
 ```{r}
-mod2_data %>% 
+path_a_data %>% 
   group_by(analog_condition) %>% 
   mutate(mean = mean(itt_comp_gmc)) %>% 
   select(analog_condition, mean) %>% 
   unique()
-
 ```
 
-# Model 2b: Instructions x Target Variable on Threat
+## Indirect Path B
 
-```{r}
-mod2b <- lm(itt_comp ~ analog_condition*target_condition, data = mod2_data)
-summary(mod2b)
-```
-
-# Models 3a and 3b: Mediated effect on projection without bootstrapping
-
-## 3a: Target by condition on projection 
-
-### BFI 
-
-```{r}
-mod3a_bfi <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition*target_condition +
-       (bfi_self_pmc| sub_id), data = bfi_data)
-summary(mod3a_bfi)
-
-tab_model(mod3a_bfi)
-```
-
-Analog does not appear to have an affect, so threat will have nothing to affect...
-
-### ELI
-
-```{r}
-mod3a_eli <- lmer(eli_targ ~ eli_self_pmc*analog_condition*target_condition +
-       (0 + eli_self_pmc | sub_id), data = eli_data)
-summary(mod3a_eli)
-
-tab_model(mod3a_eli)
-```
- 
- 
-## 3b: Analog by threat composite on projection
-
-### BFI 
-
-```{r}
-mod3b_bfi <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition*itt_comp_gmc +
-       (bfi_self_pmc| sub_id), data = bfi_data)
-summary(mod3b_bfi)
-
-tab_model(mod3b_bfi)
-```
-
-### ELI
-
-```{r}
-mod3b_eli <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*itt_comp_gmc +
-       (0 + eli_self_pmc | sub_id), data = eli_data)
-summary(mod3b_eli)
-
-tab_model(mod3b_eli)
-```
+*In "stereo_analyses" document. Examines threat composite predicting projection/counter-projection.*
 
 # Bootstrapping
 
@@ -620,7 +310,3 @@ med_ave_estimates
 
 
 ```
-
-Things to do/check:
-
-Multicolinearity across levels?

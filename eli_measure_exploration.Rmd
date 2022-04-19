@@ -1,0 +1,360 @@
+---
+title: "Exploring the ELI Measure"
+output: 
+    html_document:
+      code_download: TRUE
+      toc: TRUE
+      toc_float:
+        collapsed: FALSE
+      toc_depth: 1
+      code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r data prep, echo = FALSE, warning = FALSE, message = FALSE, error = FALSE}
+# Loading packages
+library(psych)
+library(lme4)
+library(nlme)
+library(sjPlot)
+library(effects)
+library(magrittr) # part of the tidyverse but must be read in on its own
+library(parameters)
+library(dplyr)
+library(tidyr)
+library(rio)
+library(ggplot2)
+library(emmeans)
+library(corrplot)
+library(doParallel) 
+library(doRNG)
+
+# Functions to clean document, get data from wide to long format
+source("functions/Cleaning.R")
+
+# Setting global chunk options
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+options(scipen = 999)
+
+# Importing data
+wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
+
+# wide_data_sub <- wide_data %>%
+#   select(sub_id,
+#          bfi_self_1:eli_self_10,
+#          bfi_ster_1:eli_stereo_10,
+#          bfi_targ_1:eli_targ_10)
+# 
+# bias_counts <- apply(wide_data_sub, 1, function(x) length(which(x=="3")))
+# bias_counts <- as.data.frame(bias_counts)
+# 
+# total_answers <- length(wide_data_sub)
+# 
+# # Used the sub_ids obtained from below in function above
+# bias_counts %>%
+#   mutate(bias_percents = (bias_counts/total_answers)*100) %>%
+#   filter(bias_percents > 50)
+# 
+# 
+# wide_data <- wide_data[-c(12, 17, 18, 22, 24, 31, 40, 70, 78, 82, 86, 87, 99, 
+#                           112, 130, 131, 144, 145, 147, 154, 165, 166, 180, 192, 
+#                           216, 247, 253, 258, 265, 275, 291, 293, 313, 324, 349,
+#                           362, 375, 385, 387, 409, 410, 460, 474, 483, 486), ] 
+
+# Cleaning data using functions
+long_data_eli <- get_wrangled_eli(wide_data)
+
+clean_vars_eli <- get_vars_cleaned(long_data_eli)
+
+clean_data_eli <- remove_participants(clean_vars_eli)
+
+clean_data_eli %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = scale(itt_comp, center = T, scale = F))
+```
+
+# Exploring relationship of ELI vars with politics {.tabset .tabset-fade .tabset-pills}
+
+```{r}
+eli_wide <- clean_data %>% 
+  select(sub_id, eli_number, eli_self, pol_orient_1, pol_orient_2, pol_orient_3) %>% 
+  unique() %>% 
+  pivot_wider(names_from = eli_number, values_from = eli_self) %>% 
+  select(-sub_id)
+
+eli_pol_cor <- cor(eli_wide)
+
+eli_pol_cor_plot <- corrplot(eli_pol_cor, method = "number")
+
+colnames(eli_pol_cor_plot) = rep(c('Politics: Overall',
+                                       'Politics: Social',
+                                       'Politics: Economic',
+                                       'ELI 1',
+                                       'ELI 2',
+                                       'ELI 3',
+                                       'ELI 4',
+                                       'ELI 5',
+                                       'ELI 6',
+                                       'ELI 7',
+                                       'ELI 8',
+                                       'ELI 9',
+                                       'ELI 10'))
+
+rownames(eli_pol_cor_plot) = rep(c('Politics: Overall',
+                                       'Politics: Social',
+                                       'Politics: Economic',
+                                       'ELI 1',
+                                       'ELI 2',
+                                       'ELI 3',
+                                       'ELI 4',
+                                       'ELI 5',
+                                       'ELI 6',
+                                       'ELI 7',
+                                       'ELI 8',
+                                       'ELI 9',
+                                       'ELI 10'))
+corrplot(eli_pol_cor_plot, 
+         is.corr = TRUE, 
+         #method = "number", 
+         method = 'color',
+         col.lim = c(0, 1),
+         tl.cex = .85,
+         tl.col = 'black',
+         addgrid.col = 'white',
+         addCoef.col = 'grey50')
+```
+
+Responses on the ELI are not related to responses on the political orientation questions.
+
+Replicate analyses from Pilot using other measures in this doc
+
+# Exploring structure of ELI {.tabset .tabset-fade .tabset-pills}
+
+## Self
+
+```{r}
+eli_wide_self <- clean_data %>% 
+  select(sub_id, eli_number, eli_self) %>% 
+  unique() %>% 
+  pivot_wider(names_from = eli_number, values_from = eli_self) %>% 
+  select(sub_id, "1":"10") %>% 
+  unique() %>% 
+  select(-sub_id)
+
+eli_self_matrix_cor <- cor(eli_wide_self)
+
+eli_self_cor_plot <- corrplot(eli_self_matrix_cor, method = "number")
+```
+
+Pretty uncorrelated, makes them appear orthogonal
+
+## Target
+
+```{r}
+eli_wide_targ <- clean_data %>% 
+  select(sub_id, eli_number, eli_targ) %>% 
+  unique() %>% 
+  pivot_wider(names_from = eli_number, values_from = eli_targ) %>% 
+  select(sub_id, "1":"10") %>% 
+  unique() %>% 
+  select(-sub_id)
+
+eli_targ_matrix_targ <- cor(eli_wide_targ)
+
+eli_targ_cor_plot <- corrplot(eli_targ_matrix_targ, method = "number")
+```
+
+The target has some slightly higher correlations than the self, but highestbeing .31, so still not very high...
+
+## Stereo
+
+```{r}
+eli_wide_stereo <- clean_data %>% 
+  select(sub_id, eli_number, eli_stereo) %>% 
+  unique() %>% 
+  pivot_wider(names_from = eli_number, values_from = eli_stereo) %>% 
+  select(sub_id, "1":"10") %>% 
+  unique() %>% 
+  select(-sub_id)
+
+eli_stereo_matrix_stereo <- cor(eli_wide_stereo)
+
+eli_stereo_cor_plot <- corrplot(eli_stereo_matrix_stereo, method = "number")
+
+```
+
+Again, higher correlations than for the self, but still only .35 as the highest.
+
+# Exploring variance in intercepts for ELI
+
+ https://bbolker.github.io/mixedmodels-misc/glmmFAQ.html
+
+## Random intercept
+
+```{r}
+eli_data <- clean_data_eli %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
+         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
+         analog_condition) %>% 
+  unique() %>% 
+  na.omit() 
+
+eli_randint_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
+                     (1 | sub_id), 
+                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
+
+summary(eli_randint_test)
+```
+
+The random variance for the intercept is 0, which is causing the singularity. This does not occur with the BFI. The data looks normal in the descriptives document. Checking some more stuff below.
+
+### Checking individual intercepts/slopes
+
+*Person mean centered variables*
+
+```{r}
+eli_coeffs_per_sub_c  <- lmList(eli_targ_pmc ~ 1 + eli_self_pmc | sub_id, eli_data)
+eli_coeffs_per_sub_c
+```
+
+*Uncentered variables*
+
+```{r}
+eli_coeffs_per_sub  <- lmList(eli_targ ~ 1 + eli_self | sub_id, eli_data)
+eli_coeffs_per_sub
+```
+
+There seems to be variability in the intercepts, even though lmer is not finding it.
+
+### Scatterplot of variables
+
+```{r}
+ggplot(clean_data_eli, aes(eli_self_pmc, eli_targ_pmc)) +
+  geom_point()
+```
+
+## Random Slopes/No random intercept
+
+```{r}
+eli_randslopes_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
+                     (0 + eli_self_pmc | sub_id), 
+                   data = eli_data) 
+
+
+summary(eli_randslopes_test)
+```
+
+Running without the random intercept fixes the issue
+
+## ELI
+
+### Correlation matrix (multicolinearity)
+
+```{r}
+cor_predictors_eli <- clean_data_eli %>% 
+  select(sub_id, eli_number, eli_self, eli_targ, itt_comp) %>% 
+  unique() %>% 
+  na.omit() %>% 
+  select(eli_self, eli_targ, itt_comp)
+
+cor_matrix_predictors_eli <- cor(cor_predictors_eli)
+cor_matrix_predictors_eli
+
+cor_plot_predictors_eli <- corrplot(cor_matrix_predictors_eli, method = "number")
+
+colnames(cor_plot_predictors_eli) = rep(c('ELI: Self',
+                                      'ELI: Target',
+                                      'Threat Composite'))
+
+rownames(cor_plot_predictors_eli) = rep(c('ELI: Self',
+                                      'ELI: Target',
+                                      'Threat Composite'))
+corrplot(cor_plot_predictors_eli, 
+         is.corr = TRUE, 
+         #method = "number", 
+         method = 'color',
+         col.lim = c(0, 1),
+         tl.cex = .85,
+         tl.col = 'black',
+         addgrid.col = 'white',
+         addCoef.col = 'grey50')
+```
+
+### MLM Results
+
+```{r}
+model1_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc + # itt does not work as a RE; model does not converge
+                     (0 + eli_self_pmc | sub_id), 
+                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
+
+
+summary(model1_eli_randslopes)
+tab_model(model1_eli_randslopes,
+          digits = 3)
+```
+
+#### Simple Slopes
+
+```{r}
+mod1_simpslopes_eli <- emtrends(model1_eli_randslopes, ~ itt_comp_gmc,
+                              var ="eli_self_pmc",
+                              at = threat_levels)
+
+mod1_simpslopes_eli
+```
+
+#### Visualization
+
+```{r}
+mod1_eli_maineffect <- effect("eli_self_pmc:itt_comp_gmc",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0, 1.07)),
+                         mod = model1_eli_randslopes)
+
+mod1_eli_maineffect <- as.data.frame(mod1_eli_maineffect)
+mod1_eli_maineffect$itt_comp_gmc <- as.factor(mod1_eli_maineffect$itt_comp_gmc)
+
+ggplot(mod1_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target-level \nthreat",
+                        breaks = c(-1.07, 0, 1.07), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat",
+         subtitle = "Using the ELI",
+       x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+### ELI
+
+```{r}
+mod3a_eli <- lmer(eli_targ ~ eli_self_pmc*analog_condition*target_condition +
+       (0 + eli_self_pmc | sub_id), data = eli_data)
+summary(mod3a_eli)
+
+tab_model(mod3a_eli)
+```
+ 
+ ### ELI
+
+```{r}
+mod3b_eli <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*itt_comp_gmc +
+       (0 + eli_self_pmc | sub_id), data = eli_data)
+summary(mod3b_eli)
+
+tab_model(mod3b_eli)
+```

@@ -64,6 +64,8 @@ clean_data_eli %<>%
 
 ## Only composite
 
+Corresponds to path b in the mediation (effect of threat composite on projection)
+
 ```{r}
 data_bfi <- clean_data_bfi %>% 
   select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
@@ -123,7 +125,7 @@ ggplot(bfi_nostereo_comp_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
        y = "BFI responses for target")
 ```
 
-### Residuals
+### Assumptions
 
 ```{r}
 # checking normality of conditional residuals
@@ -136,9 +138,13 @@ qqnorm(ranef(bfi_nostereo_comp)$sub_id$bfi_self_pmc,
 # Checking residuals for intercept
 qqnorm(ranef(bfi_nostereo_comp)$sub_id$`(Intercept)`,
        main="Q-Q plot for the random intercept")
+
+plot_model(bfi_nostereo_comp, type='diag')
 ```
 
-## Target condition  x composite
+## Target condition x composite
+
+Adding condition to test the effect of context
 
 ```{r}
 bfi_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition +
@@ -161,6 +167,8 @@ pairs(simpslopes_bfi_nostereo1)
 ```
 
 ### Visualization
+
+#### Model output
 
 ```{r}
 bfi_no_stereo_df <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
@@ -205,7 +213,33 @@ ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
        y = "BFI responses for target")
 ```
 
-### Residuals
+#### Raw
+
+```{r}
+plot_data_int1 <- data_bfi %>% 
+  select(sub_id, bfi_number, bfi_self_pmc, bfi_targ_pmc, itt_comp_gmc, target_condition)
+
+plot_data_int1$itt_comp_gmc[data_bfi$itt_comp_gmc < -1.07] <- "Low"
+plot_data_int1$itt_comp_gmc[data_bfi$itt_comp_gmc > -1.07 & data_bfi$itt_comp_gmc < 1.07] <- "Ave"
+plot_data_int1$itt_comp_gmc[data_bfi$itt_comp_gmc > 1.07] <- "High"
+
+
+  # group_by(bfi_self_pmc, itt_comp_gmc, target_condition) %>% 
+  # mutate(mean = mean(bfi_targ_pmc),
+  #        sd = sd(bfi_targ_pmc))
+
+ggplot(plot_data_int1, aes(bfi_self_pmc, bfi_targ_pmc, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~target_condition,
+             labeller = labeller(target_condition = target_labels))
+```
+
+### Assumptions
 
 ```{r}
 # checking normality of conditional residuals
@@ -218,6 +252,8 @@ qqnorm(ranef(bfi_nostereo)$sub_id$bfi_self_pmc,
 # Checking residuals for intercept
 qqnorm(ranef(bfi_nostereo)$sub_id$`(Intercept)`,
        main="Q-Q plot for the random intercept")
+
+plot_model(bfi_nostereo, type='diag')
 ```
 
 More normal, but a little tail
@@ -280,7 +316,7 @@ ggplot(bfi_stereo_comp_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
        y = "BFI responses for target")
 ```
 
-### Residuals
+### Assumptions
 
 ```{r}
 # checking normality of conditional residuals
@@ -296,6 +332,8 @@ qqnorm(ranef(bfi_stereo_comp)$sub_id$bfi_stereo_pmc,
 # Checking residuals for intercept
 qqnorm(ranef(bfi_stereo_comp)$sub_id$`(Intercept)`,
        main="Q-Q plot for the random intercept")
+
+plot_model(bfi_stereo_comp, type='diag')
 ```
 
 Also seems to have slight tails, basically when stereotyping is added to the model
@@ -369,7 +407,7 @@ ggplot(bfi_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
        y = "BFI responses for target")
 ```
 
-### Residuals
+### Assumptions
 
 ```{r}
 # checking normality of conditional residuals
@@ -385,16 +423,131 @@ qqnorm(ranef(bfi_stereo)$sub_id$bfi_stereo_pmc,
 # Checking residuals for intercept
 qqnorm(ranef(bfi_stereo)$sub_id$`(Intercept)`,
        main="Q-Q plot for the random intercept")
+
+plot_model(bfi_stereo, type='diag')
 ```
 
 Definitely a tail, but only a few points, so most likely robust; stereo is the worst, may need to transform it
 
-# Multicolinearity of predictors
+# Checking effect of removing UO participants {.tabset .tabset-fade .tabset-pills}
+
+## No stereotyping
+
+### Only composite
+
+```{r}
+data_bfi_prolific <- clean_data_bfi %>% 
+  filter(data_site != "uo") %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
+         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc) %>% 
+  unique() %>% 
+  na.omit() 
+
+bfi_nostereo_comp_pro <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = data_bfi_prolific)
+summary(bfi_nostereo_comp_pro)
+tab_model(bfi_nostereo_comp_pro)
+```
+
+Did not change
+
+#### Simple Slopes
+
+```{r}
+bfi_nostereo_comp_pro <- emtrends(bfi_nostereo_comp_pro , ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = c(threat_levels))
+
+
+bfi_nostereo_comp_pro
+```
+
+Did not change
+
+### Composite x Target Condition
+
+```{r}
+bfi_nostereo_pro <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition +
+                     (bfi_self_pmc | sub_id), data = data_bfi_prolific)
+summary(bfi_nostereo_pro)
+tab_model(bfi_nostereo_pro)
+```
+
+Did not change
+
+#### Simple Slopes
+
+```{r}
+bfi_nostereo_targ_pro <- emtrends(bfi_nostereo_pro, ~ itt_comp_gmc*target_condition,
+                              var ="bfi_self_pmc",
+                              at = c(targ_levels, threat_levels))
+
+
+bfi_nostereo_targ_pro 
+```
+
+Did not change 
+
+## Stereotyping
+
+### Only composite
+
+```{r}
+bfi_stereo_comp_pro <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = data_bfi_prolific)
+summary(bfi_stereo_comp_pro)
+tab_model(bfi_stereo_comp_pro)
+```
+
+Did not change
+
+#### Simple Slopes
+
+```{r}
+bfi_stereo_comp_pro <- emtrends(bfi_stereo_comp_pro, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = c(threat_levels))
+
+
+bfi_stereo_comp_pro
+```
+
+Did not change
+
+### Composite x Target Condition
+
+```{r}
+bfi_stereo_pro <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition*bfi_stereo_pmc +
+                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = data_bfi_prolific)
+summary(bfi_stereo_pro)
+tab_model(bfi_stereo_pro)
+```
+
+The interaction of self, comp, and condition becomes marginal (.053) when we remove the UO participants
+
+#### Simple Slopes
+
+```{r}
+bfi_stereo_targ_pro <- emtrends(bfi_stereo_pro, ~ itt_comp_gmc*target_condition,
+                              var ="bfi_self_pmc",
+                              at = c(targ_levels, threat_levels))
+
+
+bfi_stereo_targ_pro 
+```
+
+However, simple slopes show that residual counter-projection still persists in the same circumstances, which is the most important result.
+
+# Multicolinearity of predictors {.tabset .tabset-fade .tabset-pills}
 
 ```{r}
 cor_bfi <- data_bfi %>% 
-  select(bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
-  unique()
+  select(bfi_self_pmc, bfi_stereo_pmc, bfi_targ_pmc, itt_comp_gmc) %>% 
+  unique() %>% 
+  rename("BFI: Self" = bfi_self_pmc,
+         "BFI: Stereo" = bfi_stereo_pmc,
+         "BFI: Target" = bfi_targ_pmc,
+         "Threat Composite" = itt_comp_gmc)
 
 correlations_preds <- cor(cor_bfi)
 
@@ -406,5 +559,4 @@ corrplot(correlations_preds,
          tl.col = 'black',
          addgrid.col = 'white',
          addCoef.col = 'grey50')
-
 ```
