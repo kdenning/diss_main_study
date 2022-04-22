@@ -24,6 +24,8 @@ library(rio)
 library(ggplot2)
 library(emmeans)
 library(lavaan)
+library(lme4)
+library(sjPlot)
 
 # Functions to clean document, get data from wide to long format
 source("functions/Cleaning.R")
@@ -109,56 +111,11 @@ anova(int_check2_res)
 
 How much they reported Jen was misunderstood was significantly different, with those in the analog condition saying she was more misunderstood. However, this did not have an effect on counter-projection.
 
-# Exploratory analyses including analog condition {.tabset .tabset-fade .tabset-pills}
-
-## Targ condition x analog condition on threat
-
-```{r}
-mod2_data <- clean_data_bfi %>% 
-  select(sub_id, itt_comp_gmc, analog_condition, target_condition) %>% 
-  unique()
-```
-
-```{r}
-mod2b <- lm(itt_comp ~ analog_condition*target_condition, data = mod2_data)
-summary(mod2b)
-```
-
-## Analog x targ on projection
-
-```{r}
-bfi_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
-         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc,
-         analog_condition) %>% 
-  unique() %>% 
-  na.omit() 
-```
-
-```{r}
-mod3a_bfi <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition*target_condition +
-       (bfi_self_pmc| sub_id), data = bfi_data)
-summary(mod3a_bfi)
-
-tab_model(mod3a_bfi)
-```
-
-Analog does not appear to have an effect, so threat will have nothing to affect...
-
-## Analog x threat composite on projection
-
-```{r}
-mod3b_bfi <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition*itt_comp_gmc +
-       (bfi_self_pmc| sub_id), data = bfi_data)
-summary(mod3b_bfi)
-
-tab_model(mod3b_bfi)
-```
 
 # Checking mean/sd of bfi_self responses per item {.tabset .tabset-fade .tabset-pills}
 
 ```{r}
-bfi_wide_self <- clean_data %>% 
+bfi_wide_self <- clean_data_bfi %>% 
   select(sub_id, bfi_number, bfi_self) %>% 
   unique() %>% 
   pivot_wider(names_from = bfi_number, values_from = bfi_self) %>% 
@@ -205,4 +162,33 @@ filter_loss <- clean_data_bfi %>%
   filter(target_condition == "LOSS")
 
 hist(filter_loss$itt_comp)
+```
+
+# Testing effect of centering
+
+## Only composite
+
+### Person mean centered
+
+```{r}
+data_bfi <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
+         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc,
+         bfi_targ_gmc, bfi_self_gmc, bfi_stereo_gmc) %>% 
+  unique() %>% 
+  na.omit() 
+
+bfi_pmc1 <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = data_bfi)
+summary(bfi_pmc1)
+tab_model(bfi_pmc1)
+```
+
+### Grand mean centered
+
+```{r}
+bfi_gmc1 <- lmer(bfi_targ ~ bfi_self_gmc*itt_comp_gmc +
+                     (bfi_self_gmc | sub_id), data = data_bfi)
+summary(bfi_gmc1)
+tab_model(bfi_gmc1)
 ```

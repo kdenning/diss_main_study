@@ -192,6 +192,9 @@ anova_data <- clean_data_bfi %>%
   select(itt_comp, target_condition, sub_id) %>% 
   unique()
 
+anova_data %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
+
 contrasts(anova_data$target_condition)
 results <- aov(itt_comp ~ target_condition, data = anova_data)
 summary(results)

@@ -90,6 +90,7 @@ simpslopes_bfi_nostereo2 <- emtrends(bfi_nostereo_comp, ~ itt_comp_gmc,
 
 
 simpslopes_bfi_nostereo2
+test(simpslopes_bfi_nostereo2)
 pairs(simpslopes_bfi_nostereo2)
 ```
 
@@ -163,6 +164,7 @@ simpslopes_bfi_nostereo1 <- emtrends(bfi_nostereo, ~ itt_comp_gmc*target_conditi
 
 
 simpslopes_bfi_nostereo1
+test(simpslopes_bfi_nostereo1)
 pairs(simpslopes_bfi_nostereo1)
 ```
 
@@ -281,6 +283,7 @@ simpslopes_bfi_stereo2 <- emtrends(bfi_stereo_comp, ~ itt_comp_gmc,
 
 
 simpslopes_bfi_stereo2
+test(simpslopes_bfi_stereo2)
 pairs(simpslopes_bfi_stereo2)
 ```
 
@@ -359,6 +362,7 @@ simpslopes_bfi_stereo1 <- emtrends(bfi_stereo, ~ itt_comp_gmc*target_condition,
 
 
 simpslopes_bfi_stereo1
+test(simpslopes_bfi_stereo1)
 pairs(simpslopes_bfi_stereo1)
 ```
 
@@ -498,6 +502,7 @@ bfi_stereo_comp_pro <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_
 summary(bfi_stereo_comp_pro)
 tab_model(bfi_stereo_comp_pro)
 ```
+
 
 Did not change
 

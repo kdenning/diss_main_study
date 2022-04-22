@@ -1,0 +1,142 @@
+---
+title: "Analogous PT MLMS"
+output: 
+    html_document:
+      code_download: TRUE
+      toc: TRUE
+      toc_float:
+        collapsed: FALSE
+      toc_depth: 1
+      code_folding: hide
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r data prep, echo = FALSE, warning = FALSE, message = FALSE, error = FALSE}
+# Loading packages
+library(psych)
+library(effects)
+library(magrittr) # part of the tidyverse but must be read in on its own
+library(parameters)
+library(dplyr)
+library(tidyr)
+library(rio)
+library(ggplot2)
+library(emmeans)
+library(lavaan)
+library(lme4)
+library(sjPlot)
+
+# Functions to clean document, get data from wide to long format
+source("functions/Cleaning.R")
+
+# Setting global chunk options
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+options(scipen = 999)
+
+# Importing data
+wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
+
+# Cleaning data using functions
+long_data_bfi <- get_wrangled_bfi(wide_data)
+
+clean_vars_bfi <- get_vars_cleaned(long_data_bfi)
+
+clean_data_bfi <- remove_participants(clean_vars_bfi)
+
+clean_data_bfi %<>%    
+  mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
+         itt_comp_gmc = itt_comp - mean(itt_comp, na.rm = TRUE))
+```
+
+# Analyses including analog condition {.tabset .tabset-fade .tabset-pills}
+
+## Targ condition x analog condition on threat
+
+```{r}
+threat_df <- clean_data_bfi %>% 
+  select(sub_id, itt_comp_gmc, itt_comp, analog_condition, target_condition) %>% 
+  unique()
+```
+
+```{r}
+targ_analog_threat_mod <- lm(itt_comp ~ analog_condition*target_condition, data = threat_df)
+summary(targ_analog_threat_mod)
+tab_model(targ_analog_threat_mod)
+```
+
+## Analog x targ on projection
+
+```{r}
+bfi_data <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
+         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc,
+         analog_condition) %>% 
+  unique() %>% 
+  na.omit() 
+
+bfi_data %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
+```
+
+
+```{r}
+targ_analog_mod <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition*target_condition +
+       (bfi_self_pmc| sub_id), data = bfi_data)
+summary(targ_analog_mod)
+
+tab_model(targ_analog_mod)
+```
+
+### Simple Slopes
+
+```{r}
+targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
+simpslopes_int <- emtrends(targ_analog_mod, ~ target_condition,
+                              var ="bfi_self_pmc",
+                              at = targ_levels)
+
+
+simpslopes_int
+```
+
+#### P-values
+
+```{r}
+test(simpslopes_int)
+```
+
+#### Pairwise
+
+```{r}
+pairs(simpslopes_int)
+```
+
+### Visualization
+
+```{r}
+ggplot(bfi_data, aes(bfi_self_pmc, bfi_targ_pmc, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Control",
+                                  "Warm",
+                                  "Loss"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target condition",
+         subtitle = "Using the BFI",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+

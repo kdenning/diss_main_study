@@ -91,7 +91,9 @@ bfi_data <- clean_data_bfi %>%
   na.omit() 
 ```
 
-# Residual counter-projection on later conversation  {.tabset .tabset-fade .tabset-pills}
+*Both models are predicting the downstream effect of having a conversation with the target.*
+
+# With BFI  {.tabset .tabset-fade .tabset-pills}
 
 ## Model output to pull coeffs
 
@@ -141,13 +143,13 @@ summary(downstream_main)
 
 ### Interaction
 
-```{}
+```{r}
 # Singular; so did not matter doing individual models; only main effect matters
-downstream_sig_int <- lm(will_to_convo ~ int_loss_cont, data = coeffs_df)
-summary(downstream_sig_int)
+# downstream_sig_int <- lm(will_to_convo ~ int_loss_cont, data = coeffs_df)
+# summary(downstream_sig_int)
 ```
 
-# Visualization  {.tabset .tabset-fade .tabset-pills}
+## Visualization  {.tabset .tabset-fade .tabset-pills}
 
 ```{r}
 ggplot(coeffs_df, aes(cp_main, will_to_convo)) +
@@ -155,9 +157,83 @@ ggplot(coeffs_df, aes(cp_main, will_to_convo)) +
               colour = "black") +
   theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  labs(title = "Projection coefficients predicting behavior with target",
+  labs(title = "Projection coefficients using BFI predicting behavior with target",
          subtitle = "Negative coefficients indicate counter-projection",
        y = "Time willing to converse (1 = None; 5 = 60 Minutes)",
-       x = "Projection coefficients")
+       x = "Projection coefficients (BFI)")
+                                        
+```
+
+# With ELI
+
+## Model (from ELI test of residual counter-projection)
+
+```{r}
+eli_data <- clean_data_eli %>% 
+  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
+         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
+         analog_condition, itt_comp, will_to_convo) %>% 
+  unique() %>% 
+  na.omit() 
+
+eli_mod<- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc + # itt does not work as a RE; model does not converge
+                     (0 + eli_self_pmc + eli_stereo_pmc | sub_id), 
+                   data = eli_data)
+summary(eli_mod)
+```
+
+## Getting coefficients
+
+```{r}
+eli_mod_coeffs <-coefficients(eli_mod)
+
+cp_main_eli <- eli_mod_coeffs$sub_id$eli_self_pmc
+threat_comp_eli <- eli_mod_coeffs$sub_id$`eli_self_pmc:itt_comp_gmc`
+
+sub_id_eli <- eli_data %>% 
+  select(sub_id, will_to_convo) %>% 
+  unique()
+
+coeffs_df_eli <- cbind(sub_id_eli, cp_main_eli, threat_comp_eli)
+
+coeffs_df_eli %<>% 
+  mutate(will_to_convo = as.numeric(dplyr::recode(will_to_convo,
+                       `0 minutes` = "1",
+                       `15 minutes` = "2",
+                       `30 minutes` = "3",
+                       `45 minutes` = "4",
+                       `60 minutes` = "5")))
+```
+
+## Models predicting downstream 
+
+### Main Effect
+
+```{r}
+# Singularities with so many in the models, so will do individual models
+downstream_main_eli <- lm(will_to_convo ~ cp_main_eli, data = coeffs_df_eli)
+summary(downstream_main_eli)
+```
+
+### Interaction
+
+```{r}
+# Singular; so did not matter doing individual models; only main effect matters
+# mod_threat_eli <- lm(will_to_convo ~ threat_comp_eli, data = coeffs_df_eli)
+# summary(mod_threat_eli)
+```
+
+## Visualization  {.tabset .tabset-fade .tabset-pills}
+
+```{r}
+ggplot(coeffs_df_eli, aes(cp_main_eli, will_to_convo)) +
+  geom_smooth(method = "lm",
+              colour = "black") +
+  theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  labs(title = "Projection coefficients for ELI predicting behavior with target",
+         subtitle = "Negative coefficients indicate counter-projection",
+       y = "Time willing to converse (1 = None; 5 = 60 Minutes)",
+       x = "Projection coefficients (ELI)")
                                         
 ```

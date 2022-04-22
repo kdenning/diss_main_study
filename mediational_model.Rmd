@@ -110,9 +110,9 @@ path_a_data <- clean_data_bfi %>%
 path_a <- lm(itt_comp_gmc ~ analog_condition, data = path_a_data)
 summary(path_a)
 
-# mod2 <- aov(itt_comp_gmc ~ analog_condition, data = mod2_data) # Aov stats, does not matter that I used lm in mediation bc the same; probably easier for code
-# summary(mod2)
-# emmeans(mod2, pairwise ~ analog_condition)
+mod2 <- aov(itt_comp_gmc ~ analog_condition, data = path_a_data) # Aov stats, does not matter that I used lm in mediation bc the same; probably easier for code
+summary(mod2)
+emmeans(mod2, pairwise ~ analog_condition)
 ```
 
 ```{r}

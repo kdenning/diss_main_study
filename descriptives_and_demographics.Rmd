@@ -41,11 +41,14 @@ options(scipen = 999)
 wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 
 # Cleaning data using functions
-long_data <- get_wrangled(wide_data)
+long_data_bfi <- get_wrangled_bfi(wide_data)
+long_data_eli <- get_wrangled_eli(wide_data)
 
-clean_vars <- get_vars_cleaned(long_data)
+clean_vars_bfi <- get_vars_cleaned(long_data_bfi)
+clean_vars_eli <- get_vars_cleaned(long_data_eli)
 
-clean_data <- remove_participants(clean_vars)
+clean_data_bfi <- remove_participants(clean_vars_bfi)
+clean_data_eli <- remove_participants(clean_vars_eli)
 ```
 
 # Descriptives {.tabset .tabset-fade .tabset-pills}
@@ -147,7 +150,7 @@ hist(clean_data_bfi$bfi_targ)
 #### Self
 
 ```{r}
-hist(clean_data_bfi$eli_self)
+hist(clean_data_eli$eli_self)
 ```
 
 Skewed for the self but normal for stereo and targ - interesting!
@@ -170,7 +173,15 @@ hist(clean_data_eli$eli_targ)
 
 ```{r}
 hist(clean_data_bfi$pol_orient_1)
-````
+```
+
+```{r}
+clean_data_bfi %>% 
+  select(sub_id, pol_orient_1) %>% 
+  unique() %>% 
+  group_by(pol_orient_1) %>% 
+  count()
+```
 
 Right/positive-skewed, more severe than in the pilot (missing option 5). Would need to transform if used as a predictor.
 
@@ -178,7 +189,7 @@ Right/positive-skewed, more severe than in the pilot (missing option 5). Would n
 
 ```{r}
 hist(clean_data_bfi$pol_orient_2)
-````
+```
 
 Right/positive-skewed, more severe than the pilot (also missing) responses to 5. Would need to transform this variable.
 
@@ -186,7 +197,7 @@ Right/positive-skewed, more severe than the pilot (also missing) responses to 5.
 
 ```{r}
 hist(clean_data_bfi$pol_orient_3)
-````
+```
 
 Some 5 responses but minimal, very skewed, should still transform.
 
@@ -395,8 +406,9 @@ clean_data_bfi %>%
 ## Age
 
 ```{r}
-clean_data %>%
+clean_data_bfi %>%
   select(sub_id, age) %>% 
+  unique() %>% 
   na.omit() %>% 
   summarize(mean = mean(age),
             sd = sd(age))
@@ -495,7 +507,7 @@ dem_percent_table(raised_country_counts)
 ### Follow-up years in US
 
 ```{r}
-clean_data %>%
+clean_data_bfi %>%
   filter(country_raised != "Raised in US") %>%
   select(sub_id, raised_follow) %>%
   unique()
