@@ -112,7 +112,7 @@ ggplot(bfi_nostereo_comp_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
                 aes(linetype = itt_comp_gmc)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Threat composite",
+  scale_linetype_manual("Target-level threat",
                         breaks = c("-1.07", "0", "1.07"), 
                        labels = c("Low",
                                   "Average",
@@ -185,9 +185,9 @@ bfi_no_stereo_df$target_condition <- as.factor(bfi_no_stereo_df$target_condition
 bfi_no_stereo_df %<>% 
   mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
 
-target_labels <- c("CONTROL" = "Control",
-                   "WARM" = "Warm",
-                   "LOSS" = "Loss")
+target_labels <- c("CONTROL" = "Control target",
+                   "WARM" = "Warm target",
+                   "LOSS" = "Loss target")
 
 ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
   geom_smooth(method = "lm", 
@@ -199,7 +199,7 @@ ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
     theme(legend.key.size = unit(1, "cm")) +
   facet_wrap(~target_condition,
              labeller = labeller(target_condition = target_labels)) +
-  scale_linetype_manual("Threat composite",
+  scale_linetype_manual("Target-level threat",
                         breaks = c("-1.07", "0", "1.07"), 
                        labels = c("Low",
                                   "Average",
@@ -207,9 +207,7 @@ ggplot(bfi_no_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
-    labs(title = "Projection by target-level threat and target condition",
-         subtitle = "Using the BFI",
-       x = "BFI responses for self",
+    labs(x = "BFI responses for self",
        y = "BFI responses for target") +
   expand_limits(x=c(-2,2), y=c(-2, 2))
 ```
@@ -305,7 +303,7 @@ ggplot(bfi_stereo_comp_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
                 aes(linetype = itt_comp_gmc)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Threat composite",
+  scale_linetype_manual("Target-level threat",
                         breaks = c("-1.07", "0", "1.07"), 
                        labels = c("Low",
                                   "Average",
@@ -313,9 +311,7 @@ ggplot(bfi_stereo_comp_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
-    labs(title = "Residual projection by target-level threat",
-         subtitle = "Using the BFI; After accounting for stereotyping",
-       x = "BFI responses for self",
+    labs(x = "BFI responses for self",
        y = "BFI responses for target")
 ```
 
@@ -397,7 +393,7 @@ ggplot(bfi_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
     theme(legend.key.size = unit(1, "cm")) +
   facet_wrap(~target_condition,
              labeller = labeller(target_condition = target_labels)) +
-  scale_linetype_manual("Threat composite",
+  scale_linetype_manual("Target-level threat",
                         breaks = c("-1.07", "0", "1.07"), 
                        labels = c("Low",
                                   "Average",
@@ -405,9 +401,7 @@ ggplot(bfi_stereo_df, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
                        values = c("solid",
                                   "dashed",
                                   "dotted"))+
-    labs(title = "Residual projection by target-level threat and target condition",
-         subtitle = "Using the BFI; After accounting for stereotyping",
-       x = "BFI responses for self",
+    labs(x = "BFI responses for self",
        y = "BFI responses for target")
 ```
 

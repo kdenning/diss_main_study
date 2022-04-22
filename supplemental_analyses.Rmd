@@ -168,7 +168,7 @@ hist(filter_loss$itt_comp)
 
 ## Only composite
 
-### Person mean centered
+### erson mean centered
 
 ```{r}
 data_bfi <- clean_data_bfi %>% 

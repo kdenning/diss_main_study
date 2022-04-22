@@ -356,9 +356,7 @@ ggplot(comp_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
-    labs(title = "Projection by target-level threat",
-         subtitle = "Using the ELI",
-       x = "ELI responses for self",
+    labs(x = "ELI responses for self",
        y = "ELI responses for target")
 ```
 
@@ -424,14 +422,12 @@ Also seems evenly spread but diagonal
 ### Visualization
 
 ```{r}
-
-
 no_stereo_viz <- eli_data %>% 
   mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
 
-target_labels <- c("CONTROL" = "Control",
-                   "WARM" = "Warm",
-                   "LOSS" = "Loss")
+target_labels <- c("CONTROL" = "Control target",
+                   "WARM" = "Warm target",
+                   "LOSS" = "Loss target")
 
 ggplot(no_stereo_viz, aes(eli_self_pmc, eli_targ_pmc, group = target_condition)) +
   geom_smooth(method = "lm", 
@@ -441,7 +437,7 @@ ggplot(no_stereo_viz, aes(eli_self_pmc, eli_targ_pmc, group = target_condition))
                 aes(linetype = target_condition)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target condition",
+  scale_linetype_manual("Target",
                         breaks = c("CONTROL", "WARM", "LOSS"), 
                        labels = c("Control",
                                   "Warm",
@@ -449,9 +445,7 @@ ggplot(no_stereo_viz, aes(eli_self_pmc, eli_targ_pmc, group = target_condition))
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
-    labs(title = "Projection by target condition using the ELI",
-         subtitle = "Using raw data instead of model effects",
-       x = "ELI responses for self",
+    labs(x = "ELI responses for self",
        y = "ELI responses for target")
 ```
 
@@ -564,9 +558,7 @@ ggplot(comp_stereo_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc))
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
-    labs(title = "Projection by target-level threat",
-         subtitle = "Using the ELI",
-       x = "ELI responses for self",
+    labs(x = "ELI responses for self",
        y = "ELI responses for target")
 ```
 
@@ -634,9 +626,9 @@ eli_stereo$target_condition <- as.factor(eli_stereo$target_condition)
 eli_stereo %<>% 
   mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
 
-target_labels <- c("CONTROL" = "Control",
-                   "WARM" = "Warm",
-                   "LOSS" = "Loss")
+target_labels <- c("CONTROL" = "Control target",
+                   "WARM" = "Warm target",
+                   "LOSS" = "Loss target")
 
 ggplot(eli_stereo, aes(eli_self_pmc, fit, group = target_condition)) +
   geom_smooth(method = "lm", 
@@ -648,7 +640,7 @@ ggplot(eli_stereo, aes(eli_self_pmc, fit, group = target_condition)) +
     theme(legend.key.size = unit(1, "cm")) +
   facet_wrap(~target_condition,
              labeller = labeller(target_condition = target_labels)) +
-  scale_linetype_manual("Threat composite",
+  scale_linetype_manual("Target-level threat",
                         breaks = c("-1.07", "0", "1.07"), 
                        labels = c("Low",
                                   "Average",
@@ -656,9 +648,7 @@ ggplot(eli_stereo, aes(eli_self_pmc, fit, group = target_condition)) +
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
-    labs(title = "Residual projection by target-level threat and target condition",
-         subtitle = "Using the ELI; Accounting for stereotyping",
-       x = "ELI responses for self",
+    labs( x = "ELI responses for self",
        y = "ELI responses for target")
 ```
 

@@ -149,7 +149,7 @@ summary(downstream_main)
 # summary(downstream_sig_int)
 ```
 
-## Visualization  {.tabset .tabset-fade .tabset-pills}
+## Visualization
 
 ```{r}
 ggplot(coeffs_df, aes(cp_main, will_to_convo)) +
@@ -157,14 +157,12 @@ ggplot(coeffs_df, aes(cp_main, will_to_convo)) +
               colour = "black") +
   theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  labs(title = "Projection coefficients using BFI predicting behavior with target",
-         subtitle = "Negative coefficients indicate counter-projection",
-       y = "Time willing to converse (1 = None; 5 = 60 Minutes)",
+  labs(y = "Time willing to converse \n(1 = None; 5 = 60 Minutes)",
        x = "Projection coefficients (BFI)")
                                         
 ```
 
-# With ELI
+# With ELI {.tabset .tabset-fade .tabset-pills}
 
 ## Model (from ELI test of residual counter-projection)
 
@@ -231,9 +229,7 @@ ggplot(coeffs_df_eli, aes(cp_main_eli, will_to_convo)) +
               colour = "black") +
   theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  labs(title = "Projection coefficients for ELI predicting behavior with target",
-         subtitle = "Negative coefficients indicate counter-projection",
-       y = "Time willing to converse (1 = None; 5 = 60 Minutes)",
+  labs(y = "Time willing to converse \n(1 = None; 5 = 60 Minutes)",
        x = "Projection coefficients (ELI)")
                                         
 ```
