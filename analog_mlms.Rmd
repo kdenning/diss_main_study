@@ -121,7 +121,7 @@ pairs(simpslopes_int)
 ggplot(bfi_data, aes(bfi_self_pmc, bfi_targ_pmc, group = target_condition)) +
   geom_smooth(method = "lm", 
                 size = .7, 
-                se = FALSE,
+                se = TRUE,
                 colour = "black", 
                 aes(linetype = target_condition)) +
     theme_minimal(base_size = 13) +

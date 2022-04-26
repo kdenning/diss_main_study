@@ -82,7 +82,8 @@ corrplot(cor_matrix_cfa,
          tl.cex = .85,
          tl.col = 'black',
          addgrid.col = 'white',
-         addCoef.col = 'grey50')
+         addCoef.col = 'grey50',
+         type = 'lower')
 ```
 
 *This corresponds to factorability, an assumption of Factor Analysis*

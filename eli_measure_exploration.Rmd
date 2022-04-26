@@ -375,16 +375,16 @@ plot_model(comp_eli_randslopes, type='diag')
 
 Also seems evenly spread but diagonal
 
-## Threat composite x target condition
+## Target variable
 
 ```{r}
-compcond_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*target_condition + # itt does not work as a RE; model does not converge
+cond_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc | sub_id), 
                    data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
 
 
-summary(compcond_eli_randslopes)
-tab_model(compcond_eli_randslopes,
+summary(cond_eli_randslopes)
+tab_model(cond_eli_randslopes,
           digits = 3)
 ```
 
@@ -392,27 +392,27 @@ tab_model(compcond_eli_randslopes,
 
 ```{r}
 targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
-simpslopes_eli_nostereo_compcond <- emtrends(compcond_eli_randslopes, ~ target_condition,
+simpslopes_eli_nostereo_cond <- emtrends(cond_eli_randslopes, ~ target_condition,
                               var ="eli_self_pmc",
                               at = targ_levels)
 
 
-simpslopes_eli_nostereo_compcond 
-pairs(simpslopes_eli_nostereo_compcond)
-test(simpslopes_eli_nostereo_compcond)
+simpslopes_eli_nostereo_cond 
+pairs(simpslopes_eli_nostereo_cond)
+test(simpslopes_eli_nostereo_cond)
 ```
 
 ### Assumptions
 
 ```{r}
 # checking normality of conditional residuals
-qqnorm(residuals(compcond_eli_randslopes), main="Q-Q plot for conditional residuals")
+qqnorm(residuals(cond_eli_randslopes), main="Q-Q plot for conditional residuals")
 
 # checking the normality of the random effects
-qqnorm(ranef(compcond_eli_randslopes)$sub_id$eli_self_pmc,
+qqnorm(ranef(cond_eli_randslopes)$sub_id$eli_self_pmc,
        main="Q-Q plot for the self random effect")
 
-plot_model(compcond_eli_randslopes, type='diag')
+plot_model(cond_eli_randslopes, type='diag')
 ```
 
 Heavy tail?
@@ -422,14 +422,23 @@ Also seems evenly spread but diagonal
 ### Visualization
 
 ```{r}
-no_stereo_viz <- eli_data %>% 
+eli_data %<>% 
   mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
 
 target_labels <- c("CONTROL" = "Control target",
                    "WARM" = "Warm target",
                    "LOSS" = "Loss target")
 
-ggplot(no_stereo_viz, aes(eli_self_pmc, eli_targ_pmc, group = target_condition)) +
+eli_cond_df <- effect("eli_self_pmc:target_condition",
+                         xlevels = list(target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = cond_eli_randslopes)
+
+eli_cond_df <- as.data.frame(eli_cond_df)
+eli_cond_df$target_condition <- as.factor(eli_cond_df$target_condition)
+
+ggplot(eli_cond_df, aes(eli_self_pmc, fit, group = target_condition)) +
   geom_smooth(method = "lm", 
                 size = .7, 
                 se = FALSE,
@@ -437,14 +446,14 @@ ggplot(no_stereo_viz, aes(eli_self_pmc, eli_targ_pmc, group = target_condition))
                 aes(linetype = target_condition)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target",
+  scale_linetype_manual("Target Variable",
                         breaks = c("CONTROL", "WARM", "LOSS"), 
-                       labels = c("Control",
-                                  "Warm",
-                                  "Loss"),
+                       labels = c("Least threatening",
+                                  "Medium threatening",
+                                  "High threatening"),
                        values = c("solid",
                                   "dashed",
-                                  "dotted")) +
+                                  "dotted")) 
     labs(x = "ELI responses for self",
        y = "ELI responses for target")
 ```
@@ -459,7 +468,7 @@ summary(analogcomp_eli_randslopes)
 tab_model(analogcomp_eli_randslopes)
 ```
 
-## Analog x target condition
+## Analog x target variable
 
 ```{r}
 analogcond_eli_randslopes <- lmer(eli_targ ~ eli_self_pmc*analog_condition*target_condition +
@@ -468,18 +477,6 @@ summary(analogcond_eli_randslopes)
 
 tab_model(analogcond_eli_randslopes)
 ```
-
-## Analog x threat composite x target condition
-
-```{r}
-analogcompcond_eli_randslopes <- lmer(eli_targ ~ eli_self_pmc*analog_condition*target_condition*itt_comp_gmc +
-       (0 + eli_self_pmc | sub_id), data = eli_data)
-summary(analogcompcond_eli_randslopes)
-
-tab_model(analogcompcond_eli_randslopes)
-```
-
-The interaction significant in the 4-way is not in the 3-way model; it could be because of variance removed due to itt_comp... or it could be because the model is overfit/underpowered with this number of predictors. I'm not sure I trust ANY effect with analog perspective-taking
 
 # Correlation matrix (multicolinearity) {.tabset .tabset-fade .tabset-pills}
 
@@ -502,7 +499,8 @@ corrplot(cor_matrix_predictors_eli,
          tl.cex = .85,
          tl.col = 'black',
          addgrid.col = 'white',
-         addCoef.col = 'grey50')
+         addCoef.col = 'grey50',
+         type = 'lower')
 ```
 
 # Residual counter-projection with ELI {.tabset .tabset-fade .tabset-pills}
@@ -518,6 +516,12 @@ comp_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc 
 summary(comp_eli_stereo)
 tab_model(comp_eli_stereo,
           digits = 3)
+```
+
+### Comparing to model without stereotyping
+
+```{r}
+anova(comp_eli_randslopes, comp_eli_stereo)
 ```
 
 ### Simple slopes
@@ -581,31 +585,35 @@ plot_model(comp_eli_stereo, type='diag')
 
 Heavy tail and outliers?
 
-## Threat composite x targ condition
+## Targ condition
 
 ```{r}
-compcond_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc*target_condition + # itt does not work as a RE; model does not converge
+cond_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*eli_stereo_pmc*target_condition + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc + eli_stereo_pmc | sub_id), 
                    data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
 
 
-summary(compcond_eli_stereo)
-tab_model(compcond_eli_stereo,
+summary(cond_eli_stereo)
+tab_model(cond_eli_stereo,
           digits = 3)
 ```
 
-Slight dip to the left but relatively spread, not funnel shape
+### Comparing to model without stereotyping
+
+```{r}
+anova(cond_eli_randslopes, cond_eli_stereo)
+```
 
 ### Simple Slopes
 
 ```{r}
-simpslopes_eli_stereo_compcond <- emtrends(compcond_eli_stereo, ~ target_condition,
+simpslopes_eli_stereo_cond <- emtrends(cond_eli_stereo, ~ target_condition,
                               var ="eli_self_pmc",
                               at = targ_levels)
 
 
-simpslopes_eli_stereo_compcond
-pairs(simpslopes_eli_stereo_compcond)
+simpslopes_eli_stereo_cond
+pairs(simpslopes_eli_stereo_cond)
 ```
 
 ### Visualization
@@ -614,23 +622,23 @@ pairs(simpslopes_eli_stereo_compcond)
 
 # interactions::interact_plot(compcond_eli_stereo, pred = eli_self_pmc, modx = itt_comp_gmc, mod2 = target_condition, interval = TRUE)
 
-eli_stereo <- effect("eli_self_pmc:target_condition",
+eli_stereo_cond <- effect("eli_self_pmc:target_condition",
                          xlevels = list(target_condition = c("CONTROL",
                                                              "WARM",
                                                              "LOSS")),
-                         mod = compcond_eli_stereo)
+                         mod = cond_eli_stereo)
 
-eli_stereo <- as.data.frame(eli_stereo)
-eli_stereo$target_condition <- as.factor(eli_stereo$target_condition)
+eli_stereo_cond <- as.data.frame(eli_stereo_cond)
+eli_stereo_cond$target_condition <- as.factor(eli_stereo_cond$target_condition)
 
-eli_stereo %<>% 
+eli_stereo_cond %<>% 
   mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
 
 target_labels <- c("CONTROL" = "Control target",
                    "WARM" = "Warm target",
                    "LOSS" = "Loss target")
 
-ggplot(eli_stereo, aes(eli_self_pmc, fit, group = target_condition)) +
+ggplot(eli_stereo_cond, aes(eli_self_pmc, fit, group = target_condition)) +
   geom_smooth(method = "lm", 
                 size = .7, 
                 se = FALSE,
@@ -638,13 +646,11 @@ ggplot(eli_stereo, aes(eli_self_pmc, fit, group = target_condition)) +
                 aes(linetype = target_condition)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
-  facet_wrap(~target_condition,
-             labeller = labeller(target_condition = target_labels)) +
-  scale_linetype_manual("Target-level threat",
-                        breaks = c("-1.07", "0", "1.07"), 
-                       labels = c("Low",
-                                  "Average",
-                                  "High"),
+  scale_linetype_manual("Target Variable",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Least threatening",
+                                  "Medium threatening",
+                                  "High threatening"),
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
@@ -656,17 +662,17 @@ ggplot(eli_stereo, aes(eli_self_pmc, fit, group = target_condition)) +
 
 ```{r}
 # checking normality of conditional residuals
-qqnorm(residuals(compcond_eli_stereo), main="Q-Q plot for conditional residuals")
+qqnorm(residuals(cond_eli_stereo), main="Q-Q plot for conditional residuals")
 
 # checking the normality of the random effects:
-qqnorm(ranef(compcond_eli_stereo)$sub_id$eli_self_pmc,
+qqnorm(ranef(cond_eli_stereo)$sub_id$eli_self_pmc,
        main="Q-Q plot for the self random effect")
 
 # looking at random effect for stereo:
-qqnorm(ranef(compcond_eli_stereo)$sub_id$eli_stereo_pmc,
+qqnorm(ranef(cond_eli_stereo)$sub_id$eli_stereo_pmc,
        main="Q-Q plot for the self random effect")
 
-plot_model(compcond_eli_stereo, type='diag')
+plot_model(cond_eli_stereo, type='diag')
 ```
 
 This may be starting to take on a funnel shape, but not so severe that I think I need to be concerned
