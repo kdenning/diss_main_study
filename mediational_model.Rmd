@@ -96,7 +96,7 @@ bfi_data <- clean_data_bfi %>%
 path_c <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition +
        (bfi_self_pmc| sub_id), data = bfi_data)
 summary(path_c)
-tab_model(pth_c)
+tab_model(path_c)
 ```
 
 ### Indirect Path A
@@ -139,7 +139,7 @@ tab_model(path_b)
 
 ```{r}
 threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
-pathb_simpslopes <- emtrends(bfi_nostereo_comp, ~ itt_comp_gmc,
+pathb_simpslopes <- emtrends(path_b, ~ itt_comp_gmc,
                               var ="bfi_self_pmc",
                               at = c(threat_levels))
 
@@ -183,22 +183,22 @@ ggplot(path_b_effects, aes(bfi_self_pmc, fit, group = itt_comp_gmc)) +
 
 ```{r}
 # checking normality of conditional residuals
-qqnorm(residuals(bfi_nostereo_comp), main="Q-Q plot for conditional residuals")
+qqnorm(residuals(path_b), main="Q-Q plot for conditional residuals")
 
 # checking the normality of the random effects (here random intercept):
-qqnorm(ranef(bfi_nostereo_comp)$sub_id$bfi_self_pmc,
+qqnorm(ranef(path_b)$sub_id$bfi_self_pmc,
        main="Q-Q plot for the self random effect")
 
 # Checking residuals for intercept
-qqnorm(ranef(bfi_nostereo_comp)$sub_id$`(Intercept)`,
+qqnorm(ranef(path_b)$sub_id$`(Intercept)`,
        main="Q-Q plot for the random intercept")
 
-plot_model(bfi_nostereo_comp, type='diag')
+plot_model(path_b, type='diag')
 ```
 
 ## Bootstrapping
 
-```{r parallel processing version}
+```{r parallel processing version, eval=FALSE}
 # Set-up for mediational model -------------------------------------------------
 # Getting basic data cleaning data before for loops
 data_4_med_bfi <- clean_data_bfi %>% 

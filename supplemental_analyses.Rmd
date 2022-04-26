@@ -355,6 +355,8 @@ med_ave_estimates
 #   write.csv('bootstrap_mediation_output.csv', row.names = F)
 ```
 
+https://quantpsy.org/pubs/hayes_preacher_2014.pdf
+
 ## Direct path c
 
 ```{r}
