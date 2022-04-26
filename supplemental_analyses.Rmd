@@ -192,3 +192,242 @@ bfi_gmc1 <- lmer(bfi_targ ~ bfi_self_gmc*itt_comp_gmc +
 summary(bfi_gmc1)
 tab_model(bfi_gmc1)
 ```
+
+# Mediation of target condition by target-level threat
+
+
+```{r parallel processing version}
+# Set-up for mediational model -------------------------------------------------
+# Getting basic data cleaning data before for loops
+data_4_med_bfi <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
+         target_condition) %>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS"))) %>% 
+  unique()
+contrasts(data_4_med_bfi$target_condition)
+
+my.helmert = matrix(c(2/3, -1/3, -1/3, 0, 1/2, -1/2), ncol = 2)
+my.helmert
+
+contrasts(data_4_med_bfi$target_condition) = my.helmert
+df_ids <- data_4_med_bfi %>% 
+    select(sub_id) %>% 
+    unique()
+
+df_items <- data_4_med_bfi %>% 
+  group_by(sub_id)
+
+# Empty df
+   empty_df <- data.frame(matrix(vector(mode = 'numeric',length = 1), nrow = 1, ncol = 9))
+  
+# Renaming variables appropriately
+  empty_df %<>%
+    rename(a_cvl = X1,
+         a_cvw =  X2,
+         b = X3,
+         c_cvl = X4,
+         c_cvw = X5,
+         c_prime_cvl = X6,
+         c_prime_cvw = X7,
+         total_cvl = X8,
+         total_cvw = X9
+         )
+
+# Seeting up multiple cores
+registerDoParallel(8)
+
+# Set seed for multiple cores
+registerDoRNG(1)
+
+# Trials to be run
+trials <- 10
+
+# Looping with parallel processing with doParallel -----------------------------
+## Keeping track of how long it takes
+## 5 seconds versus 22 seconds per iteration without parallel processing
+system.time({
+med_df <- foreach(icount(trials)) %dopar% {
+  # Getting samples ------------------------------------------------------------
+  df_id_samp  <- df_ids %>% 
+    slice_sample(n = 415)
+  
+  df_item_samp <- df_items %>% 
+  sample_n(size = 19, replace = TRUE)
+  
+  df_samp <- left_join(df_id_samp, df_item_samp)
+  
+  df_lm <- df_samp %>% 
+    select(sub_id, itt_comp_gmc, target_condition) %>% 
+    unique()
+  
+  # Running model for non-mediated effect---------------------------------------
+  targ_on_cp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition +
+                         (bfi_self_pmc | sub_id), 
+                   data = df_samp)
+  
+  # Getting coefficients for direct effect of PT, non-mediated
+  fixed_eff_targ_on_cp <- fixef(targ_on_cp) 
+  c_cvw <- fixed_eff_targ_on_cp[5] # non mediated effect of target condition on projection
+  c_cvl <- fixed_eff_targ_on_cp[6]
+  
+  # I did not use the ci's per model last time - to save on processing power, they are removed
+  
+  # Running model on indirect effect--------------------------------------------
+  targ_on_threat <- lm(itt_comp_gmc ~ target_condition, data = df_lm)
+  
+  # Getting coefficient for indirect
+  a_cvw <- targ_on_threat$coefficients[2] # effect of analog on threat; a
+  a_cvl <- targ_on_threat$coefficients[3]
+  
+  # Running model on direct, mediated effect -----------------------------------
+  threat_on_cp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition +
+                         (bfi_self_pmc | sub_id), 
+                   data = df_samp)
+  
+  # getting fixed effects from lmer into subsettable format
+  fixed_eff <- fixef(threat_on_cp) 
+  b <- fixed_eff[6] # effect of threat on projection; b
+  c_prime_cvw <- fixed_eff[7] # effect of pt on projection after accounting for threat; c'
+  c_prime_cvl <- fixed_eff[8] 
+  #did not use interaction last time, so not pulling it to save processing power
+
+  
+  # Putting coefficients into overall df----------------------------------------
+  empty_df$a_cvl[1] <- round(a_cvl, digits = 3)
+  empty_df$a_cvw[1] <- round(a_cvw, digits = 3)
+  empty_df$b[1] <- round(b, digits = 3)
+  empty_df$c_cvl[1] <- round(c_cvl, digits = 3)
+  empty_df$c_cvw[1] <- round(c_cvw, digits = 3)
+  empty_df$c_prime_cvl[1] <- round(c_prime_cvl, digits = 3)
+  empty_df$c_prime_cvw[1] <- round(c_prime_cvw, digits = 3)
+  empty_df$total_cvl[1] <- round(empty_df$a_cvl*empty_df$b+empty_df$c_prime_cvl, digits = 3)
+  empty_df$total_cvw[1] <- round(empty_df$a_cvw*empty_df$b+empty_df$c_prime_cvw, digits = 3) 
+  coeffs <- rbind(data.frame(), empty_df)
+  
+  }
+})
+
+med_results <- do.call(rbind.data.frame, med_df)
+
+med_ave_estimates <- med_results %>% 
+  # Analog was the reference condition, but I pre-registered that the control would be; multiped by "-1" to change direction for 
+  # estimates affected by this error: a, c, and c_prime
+  mutate(a = a*-1, 
+         c = c*-1,
+         c_prime = c_prime*-1,
+         # indirect effect
+         axb = (a*b)) %>% 
+  mutate(a_mean = mean(a), # analog pt on threat
+         b_mean = mean(b), # threat on counter-projection
+         c_mean = mean(c), # analog pt on counter-projection
+         cprime_mean = mean(c_prime),# analog pt on counter-projection including threat as covariate in model
+         axb_mean = mean(axb),
+         a_med = median(a),
+         b_med = median(b),
+         c_med = median(c),
+         axb_med = median(axb),
+         cprime_med = median(c_prime),
+         a_cil = quantile(a, probs = .025),
+         a_ciu = quantile(a, probs = .975),
+         b_cil = quantile(b, probs = .025),
+         b_ciu = quantile(b, probs = .975),
+         c_cil = quantile(c, probs = .025),
+         c_ciu = quantile(c, probs = .975),
+         cprime_cil = quantile(c_prime, probs = .025),
+         cprime_ciu = quantile(c_prime, probs = .975),
+         axb_cil = quantile(axb, probs = .025),
+         axb_ciu = quantile(axb, probs = .975)) %>% 
+  select(a_mean, b_mean, c_mean, cprime_mean, 
+         a_med, b_med, c_med, cprime_med,
+         a_cil, a_ciu, b_cil, b_ciu, c_cil, c_ciu, cprime_cil, cprime_ciu, 
+         axb_mean, axb_med, axb_cil, axb_ciu) %>% 
+  unique() %>% 
+  pivot_longer(a_mean:axb_ciu,
+               names_sep = "_",
+               names_to = c("Estimate", "statistic")) %>% 
+  pivot_wider(names_from = statistic, values_from = value)
+
+med_ave_estimates
+
+# Exported data to save outside r environment
+# med_results %>% 
+#   mutate(model = 1:10000) %>% 
+#   write.csv('bootstrap_mediation_output.csv', row.names = F)
+```
+
+## Direct path c
+
+```{r}
+path_c2 <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition +
+                     (bfi_self_pmc | sub_id), data = bfi_data)
+summary(path_c2)
+tab_model(path_c2)
+```
+
+### Simple Slopes
+
+```{r}
+targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
+path_c2_effects <- emtrends(path_a2, ~ target_condition,
+                              var ="bfi_self_pmc",
+                              at = targ_levels)
+
+
+path_a2_effects
+test(path_c2_effects)
+pairs(path_c2_effects)
+```
+
+### Visualization
+
+```{r}
+path_c2_data <- effect("bfi_self_pmc:target_condition",
+                         xlevels = list(target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = path_c2)
+
+path_c2_data <- as.data.frame(path_c2_data)
+path_c2_data$target_condition <- as.factor(path_c2_data$target_condition)
+
+path_c2_data %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
+
+ggplot(path_c2_data, aes(bfi_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = TRUE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target Variable",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Least threatening",
+                                  "Medium threatening",
+                                  "Most threatening"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+### Assumptions
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(bfi_nostereo_targ), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects (here random intercept):
+qqnorm(ranef(bfi_nostereo_targ)$sub_id$bfi_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+# Checking residuals for intercept
+qqnorm(ranef(bfi_nostereo_targ)$sub_id$`(Intercept)`,
+       main="Q-Q plot for the random intercept")
+
+plot_model(bfi_nostereo_targ, type='diag')
+```
+
+

@@ -82,13 +82,6 @@ clean_data_bfi %<>%
 clean_data_eli %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
          itt_comp_gmc = scale(itt_comp, center = T, scale = F))
-
-bfi_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
-         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc,
-         analog_condition, will_to_convo) %>% 
-  unique() %>% 
-  na.omit() 
 ```
 
 *Both models are predicting the downstream effect of having a conversation with the target.*
@@ -98,8 +91,8 @@ bfi_data <- clean_data_bfi %>%
 ## Model output to pull coeffs
 
 ```{r}
-bfi_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition*bfi_stereo_pmc +
-                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = bfi_data)
+bfi_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = clean_data_bfi)
 summary(bfi_stereo)
 tab_model(bfi_stereo)
 ```
@@ -111,16 +104,12 @@ mod_coeffs <-coefficients(bfi_stereo)
 
 cp_main <- mod_coeffs$sub_id$bfi_self_pmc
 threat_comp <- mod_coeffs$sub_id$`bfi_self_pmc:itt_comp_gmc`
-threat_targ_loss <- mod_coeffs$sub_id$`bfi_self_pmc:target_conditionLOSS`
-threat_targ_warm <- mod_coeffs$sub_id$`bfi_self_pmc:target_conditionWARM`
-int_warm_cont <- mod_coeffs$sub_id$`bfi_self_pmc:itt_comp_gmc:target_conditionWARM`
-int_loss_cont <- mod_coeffs$sub_id$`bfi_self_pmc:itt_comp_gmc:target_conditionLOSS`
-sub_id <- bfi_data %>% 
+
+sub_id <- clean_data_bfi %>% 
   select(sub_id, will_to_convo) %>% 
   unique()
 
-coeffs_df <- cbind(sub_id, cp_main, threat_comp, threat_targ_loss, threat_targ_warm,
-                   int_warm_cont, int_loss_cont)
+coeffs_df <- cbind(sub_id, cp_main, threat_comp)
 
 coeffs_df %<>% 
   mutate(will_to_convo = as.numeric(dplyr::recode(will_to_convo,
@@ -145,7 +134,7 @@ summary(downstream_main)
 
 ```{r}
 # Singular; so did not matter doing individual models; only main effect matters
-# downstream_sig_int <- lm(will_to_convo ~ int_loss_cont, data = coeffs_df)
+# downstream_sig_int <- lm(will_to_convo ~ threat_comp, data = coeffs_df)
 # summary(downstream_sig_int)
 ```
 
@@ -167,16 +156,9 @@ ggplot(coeffs_df, aes(cp_main, will_to_convo)) +
 ## Model (from ELI test of residual counter-projection)
 
 ```{r}
-eli_data <- clean_data_eli %>% 
-  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
-         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
-         analog_condition, itt_comp, will_to_convo) %>% 
-  unique() %>% 
-  na.omit() 
-
 eli_mod<- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc + eli_stereo_pmc | sub_id), 
-                   data = eli_data)
+                   data = clean_data_eli)
 summary(eli_mod)
 ```
 
@@ -188,7 +170,7 @@ eli_mod_coeffs <-coefficients(eli_mod)
 cp_main_eli <- eli_mod_coeffs$sub_id$eli_self_pmc
 threat_comp_eli <- eli_mod_coeffs$sub_id$`eli_self_pmc:itt_comp_gmc`
 
-sub_id_eli <- eli_data %>% 
+sub_id_eli <- clean_data_eli %>% 
   select(sub_id, will_to_convo) %>% 
   unique()
 
