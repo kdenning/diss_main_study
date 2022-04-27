@@ -62,18 +62,24 @@ clean_data_eli %<>%
 
 # Models for comparison
 
-
+## BFI no stereo 
 ```{r}
 bfi_nostereo_comp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
                      (bfi_self_pmc | sub_id), data = clean_data_bfi)
+tab_model(bfi_nostereo_comp)
 
 bfi_nostereo_targ <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition +
                      (bfi_self_pmc | sub_id), data = clean_data_bfi)
+```
 
+## ELI no stereo
+
+```{r}
 comp_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc | sub_id), 
                    data = clean_data_eli)
 
+tab_model(comp_eli_randslopes)
 cond_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc | sub_id), 
                    data = clean_data_eli)
