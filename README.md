@@ -16,11 +16,11 @@ This document looks at the effect of residual counter-projection on the downstre
 
 ### eli_measure_exploration
 
-Due to the ELI having zero variance in the intercept, many analyses using the ELI were explored seaprately. Thus, the primary analyses were conducted using the BFI in a separate document. For the dissertation, this document contains the analogous perspective-taking mlm using the ELI to examine residual counter-projection (corresponding to the section titled "Reducing residual counter-projection with the ELI" in Study 2B). This section also contains all exploration into why the ELI had zero variance in the intercept.
+Due to the ELI having zero variance in the intercept, many analyses using the ELI were explored seaprately and not included in the dissertation. Thus, the primary analyses were conducted using the BFI in separate documents. For the dissertation, this document contains all exploration into why the ELI had zero variance in the intercept.
 
 ### mediational_model
 
-Explored the direct effect of analogous perspective taking on counter-projection and if it was explained by threat. The corresponding html for this document does not include the bootstrapping results, as this was run separately. However, the code that calculated this is inlcuded and the dataset that resulted from the bootstrapping was uploaded  (titled "bootstrap_mediation_output.csv"). These results correspond to the section labeled "Effect of instruction variable mediated by target-level threat" in Study 2B's results.
+Explored the direct effect of analogous perspective taking on counter-projection and if it was explained by threat. The corresponding html for this document does not include the bootstrapping results, as this was run separately. However, the code that calculated this is inlcuded and the dataset that resulted from the bootstrapping was uploaded  (titled "bootstrap_mediation_output.csv"). Tests of assumptions can be found in this document. These results correspond to the section labeled "Effect of instruction variable mediated by target-level threat" in Study 2B's results.
 
 ### pilot_replication_analyses
 
@@ -28,7 +28,7 @@ The pilot analysis conducted to determine the variables used in the threat compo
 
 ### residual_counter_projection
 
-This analysis explored the effect of the threat composite (i.e., target-level threat) before and after accounting for stereotyping in order to measure residual counter-projection. This includes both the ELI and the BFI, as this was the main reason the ELI was included, so it was considered best to allow for the direct comparison of both measures in one document. This also includes a variety of tests of assumptions, including residuals and multicolinearity. This section corresponds to the section titled "Residual counter-projection" in Study 2B's results.
+This analysis explored if the effect of the threat composite (i.e., target-level threat) on counter-projection persisted after accounting for stereotyping. Models both including and not including stereotyping were conudcted to look for differences in residual counter-projection. This includes both the ELI and the BFI -- the reason the ELI was included was to test for differences in residual counter-projection, so this was the one analysis the ELI was used in, even with the issue with the intervept. This document also includes analyses about whether analogous perspective taking reduced residual counter-projection. A variety of tests of assumptions, including residuals and multicolinearity, can also be found in this document. This section corresponds to the section titled "Residual counter-projection" in Study 2B's results.
 
 ### supplemental_analyses
 
