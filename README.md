@@ -46,43 +46,19 @@ This document includes multilevel models specifically about the effect of analog
 
 Within the code, the variable names are somewhat different than those used in the dissertation. The definitions below should help you follow the code for the primary variables employed in the analysis. When pmc or gmc are added to variables this indicates the type of centering. pmc = person mean centering; gmc = grand mean centering.
 
-### sub_id 
-Subject id. This is in long_format for each participant and repeats for the number of items on the bfi or eli, depending on which df is being used.
+- **sub_id**: Subject id. This is in long_format for each participant and repeats for the number of items on the bfi or eli, depending on which df is being used.
+- **analog_condition**: This corresponds to whether people are in teh instructions condition or control. "analog" indicates the instruction condition.
+- **target_condition**: This corresponds to which target condition the participant was in for the target variable. "Control" corresponds to the non-political control target/least threatening target, "Warm" corresponds to the warm target/moderately threatening target, and the "Loss" condition corresponds to the political loss target/most threatening.
+- **distance_coffee**: Implicit distancing measure operationalized through distance in coffee shop; High numbers indicate more distance
+- **distance_down**: Implicit distancing measure operationalized through perceived distance you live away from the target; Higher values indicate more distance
+- **realistic_q**: Self-reported realistic threat (how much target's pose a threat to your safety or resources); Scale of 1-4; 4 indicates more threat
+- **symbolic_q**: Self-reported symbolic threat (how much target's pose a threat to American culture or your way of life);  Scale of 1-4; 4 indicates more threat
+- **itt_comp**: Composite measure of realistic and symbolic threat. 
+- **explicit_threat**: Explicit measure of threat at the target-level;  Scale of 1-4; 4 indicates more threat
+- **explicit_group**: Explicit measure of threat at the group-level;  Scale of 1-4; 4 indicates more threat
+- **will_to_convo**: Downstream behavior of willingness to have a conversation with the target; 1 = not willing to spend any time in conversation; 5 = willing to spend 60 minutes
+- **bfi_targ, bfi_self, bfi_stereo**: Responses on the bfi in long-format for either the target, self, or stereotypical member of the out-group; Scale of 1 - 5; 5 = Strongly agree that trait corresponds with target, self, or stereotypical member
+- **eli_targ, eli_self, eli_stereo**: Responses on the eli in long-format for either the target, self, or stereotypical member of the out-group; Scales varied depending on item; All items were answered on 5-point Likert scales (e.g., for liking items, 1 = Dislike a great deal, 5 = Like a great deal; for preference items, 1 = Greatly prefer Winter to Summer, 5 = Greatly prefer Summer to Winter).
 
-### analog_condition
-This corresponds to whether people are in teh instructions condition or control. "analog" indicates the instruction condition.
-
-### target_condition
-This corresponds to which target condition the participant was in for the target variable. "Control" corresponds to the non-political control target/least threatening target, "Warm" corresponds to the warm target/moderately threatening target, and the "Loss" condition corresponds to the political loss target/most threatening.
-
-### distance_coffee
-Implicit distancing measure operationalized through distance in coffee shop
-
-### distance_down
-Implicit distancing measure operationalized through perceived distance you live away from the target
-
-### realistic_q
-Self-reported realistic threat (how much target's pose a threat to your safety or resources)
-
-### symbolic_q
-Self-reported symbolic threat (how much target's pose a threat to American culture or your way of life)
-
-### itt_comp
-Composite measure of realistic and symbolic threat. 
-
-### explicit_threat
-Explicit measure of threat at the target-level
-
-### explicit_group
-Explicit measure of threat at the group-level
-
-### will_to_convo
-Downstream behavior of willingness to have a conversation with the target
-
-### bfi_targ, bfi_self, bfi_stereo
-Responses on the bfi in long-format for either the target, self, or stereotypical member of the out-group
-
-### eli_targ, eli_self, eli_stereo
-Responses on the eli in long-format for either the target, self, or stereotypical member of the out-group
 
 
