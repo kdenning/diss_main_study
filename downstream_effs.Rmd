@@ -75,6 +75,7 @@ clean_vars_eli <- get_vars_cleaned(long_data_eli)
 clean_data_bfi <- remove_participants(clean_vars_bfi)
 clean_data_eli <- remove_participants(clean_vars_eli)
 
+# Target-level threat composite measures
 clean_data_bfi %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
          itt_comp_gmc = itt_comp - mean(itt_comp, na.rm = TRUE))
@@ -156,7 +157,7 @@ ggplot(coeffs_df, aes(cp_main, will_to_convo)) +
 ## Model (from ELI test of residual counter-projection)
 
 ```{r}
-eli_mod<- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc + # itt does not work as a RE; model does not converge
+eli_mod<- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc + 
                      (0 + eli_self_pmc + eli_stereo_pmc | sub_id), 
                    data = clean_data_eli)
 summary(eli_mod)
@@ -165,7 +166,7 @@ summary(eli_mod)
 ## Getting coefficients
 
 ```{r}
-eli_mod_coeffs <-coefficients(eli_mod)
+eli_mod_coeffs <- coefficients(eli_mod)
 
 cp_main_eli <- eli_mod_coeffs$sub_id$eli_self_pmc
 threat_comp_eli <- eli_mod_coeffs$sub_id$`eli_self_pmc:itt_comp_gmc`

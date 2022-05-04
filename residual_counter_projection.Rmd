@@ -51,6 +51,7 @@ clean_vars_eli <- get_vars_cleaned(long_data_eli)
 clean_data_bfi <- remove_participants(clean_vars_bfi)
 clean_data_eli <- remove_participants(clean_vars_eli)
 
+# Adding target-level threat to bfi and eli dfs
 clean_data_bfi %<>%    
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))),
          itt_comp_gmc = scale(itt_comp, center = T, scale = F))
@@ -63,11 +64,14 @@ clean_data_eli %<>%
 # Models for comparison
 
 ## BFI no stereo 
+
 ```{r}
+# composite target-level threat
 bfi_nostereo_comp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
                      (bfi_self_pmc | sub_id), data = clean_data_bfi)
 tab_model(bfi_nostereo_comp)
 
+# target condition
 bfi_nostereo_targ <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition +
                      (bfi_self_pmc | sub_id), data = clean_data_bfi)
 ```
@@ -75,14 +79,79 @@ bfi_nostereo_targ <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition +
 ## ELI no stereo
 
 ```{r}
+# composite target-level threat
 comp_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc | sub_id), 
                    data = clean_data_eli)
 
-tab_model(comp_eli_randslopes)
+# targe condition
 cond_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc | sub_id), 
                    data = clean_data_eli)
+```
+
+### Results for ELI threat composite reported in dissertation
+
+```{r}
+summary(comp_eli_randslopes)
+tab_model(comp_eli_randslopes,
+          digits = 3)
+```
+
+#### Simple slopes
+
+```{r}
+threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
+comp_simpslopes_eli <- emtrends(comp_eli_randslopes, ~ itt_comp_gmc,
+                              var ="eli_self_pmc",
+                              at = threat_levels)
+
+comp_simpslopes_eli 
+test(comp_simpslopes_eli)
+pairs(comp_simpslopes_eli)
+```
+
+#### Visualization
+
+```{r}
+comp_eli_maineffect <- effect("eli_self_pmc:itt_comp_gmc",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0, 1.07)),
+                         mod = comp_eli_randslopes)
+
+comp_eli_maineffect <- as.data.frame(comp_eli_maineffect)
+comp_eli_maineffect$itt_comp_gmc <- as.factor(comp_eli_maineffect$itt_comp_gmc)
+
+ggplot(comp_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target-level threat",
+                        breaks = c(-1.07, 0, 1.07), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+#### Assumptions
+
+```{r}
+# checking normality of conditional residuals
+qqnorm(residuals(comp_eli_randslopes), main="Q-Q plot for conditional residuals")
+
+# checking the normality of the random effects (here random intercept):
+qqnorm(ranef(comp_eli_randslopes)$sub_id$eli_self_pmc,
+       main="Q-Q plot for the self random effect")
+
+plot_model(comp_eli_randslopes, type='diag')
 ```
 
 # Residual Counter-projection - BFI {.tabset .tabset-fade .tabset-pills}
@@ -104,7 +173,7 @@ tab_model(bfi_stereo_comp)
 anova(bfi_stereo_comp, bfi_nostereo_comp)
 ```
 
-### Simple Slopes
+### Simple Slopes & Pairwise comparisons
 
 ```{r}
 threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
@@ -187,12 +256,12 @@ tab_model(bfi_stereo_targ)
 anova(bfi_stereo_targ, bfi_nostereo_targ)
 ```
 
-### Simple slopes
+### Simple slopes & Pairwise comparisons
 
 ```{r}
 targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
 simpslopes_bfi_stereo_targ <- emtrends(bfi_stereo_targ, ~ target_condition,
-                              var ="bfi_self_pmc",
+                              var = "bfi_self_pmc",
                               at = targ_levels)
 
 
@@ -258,15 +327,14 @@ plot_model(bfi_stereo_targ, type='diag')
 
 Definitely a tail, but only a few points, so most likely robust; stereo is the worst, may need to transform it
 
-
 # Residual Counter-projection - ELI {.tabset .tabset-fade .tabset-pills}
 
 ## Threat composite only
 
 ```{r}
-comp_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc + # itt does not work as a RE; model does not converge
+comp_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*eli_stereo_pmc + 
                      (0 + eli_self_pmc + eli_stereo_pmc | sub_id), 
-                   data = clean_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
+                   data = clean_data_eli) 
 
 
 summary(comp_eli_stereo)
@@ -280,7 +348,7 @@ tab_model(comp_eli_stereo,
 anova(comp_eli_randslopes, comp_eli_stereo)
 ```
 
-### Simple slopes
+### Simple slopes & Pairwise comparisons
 
 ```{r}
 comp_stereo_simpslopes_eli <- emtrends(comp_eli_stereo, ~ itt_comp_gmc,
@@ -344,9 +412,9 @@ Heavy tail and outliers?
 ## Targ condition
 
 ```{r}
-cond_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*eli_stereo_pmc*target_condition + # itt does not work as a RE; model does not converge
+cond_eli_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*eli_stereo_pmc*target_condition + 
                      (0 + eli_self_pmc + eli_stereo_pmc | sub_id), 
-                   data = clean_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
+                   data = clean_data_eli) 
 
 
 summary(cond_eli_stereo)
@@ -360,7 +428,7 @@ tab_model(cond_eli_stereo,
 anova(cond_eli_randslopes, cond_eli_stereo)
 ```
 
-### Simple Slopes
+### Simple Slopes & Pairwise comparisons
 
 ```{r}
 simpslopes_eli_stereo_cond <- emtrends(cond_eli_stereo, ~ target_condition,
@@ -433,32 +501,34 @@ plot_model(cond_eli_stereo, type='diag')
 
 # Reducing residual counter-projection - ELI {.tabset .tabset-fade .tabset-pills}
 
-## Analog x threat composite - ELI
+## Instructions variable x threat composite - ELI
 
 ```{r}
+# Changing levels for dummy code
 clean_data_eli %<>% 
   mutate(analog_condition = forcats::fct_relevel(analog_condition,
                                                         c("control",
                                                         "analog")))
 contrasts(clean_data_eli$analog_condition)
 
+# Model
 analogcompresid_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*itt_comp_gmc*eli_stereo_pmc +
        (0 + eli_self_pmc | sub_id), data = clean_data_eli)
 summary(analogcompresid_eli_randslopes)
 
 tab_model(analogcompresid_eli_randslopes)
 confint(analogcompresid_eli_randslopes)
-
-threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
-analog_levels = list(analog_condition = c("analog", "control"))
-simslopes_analog_resid <- emtrends(analogcompresid_eli_randslopes, ~ itt_comp_gmc*analog_condition,
-                              var ="eli_self_pmc",
-                              at = c(threat_levels, analog_levels))
 ```
 
 ## Simple slopes
 
 ```{r}
+threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
+analog_levels = list(analog_condition = c("analog", "control"))
+simslopes_analog_resid <- emtrends(analogcompresid_eli_randslopes, ~ itt_comp_gmc*analog_condition,
+                              var ="eli_self_pmc",
+                              at = c(threat_levels, analog_levels))
+
 simslopes_analog_resid
 test(simslopes_analog_resid)
 ```
@@ -509,8 +579,6 @@ ggplot(analog_resid_df, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
        y = "BFI responses for target")
 ```
 
-
-
 # Checking effect of removing UO participants - BFI {.tabset .tabset-fade .tabset-pills}
 
 ## No stereotyping
@@ -520,10 +588,7 @@ ggplot(analog_resid_df, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
 ```{r}
 data_bfi_prolific <- clean_data_bfi %>% 
   filter(data_site != "uo") %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
-         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc) %>% 
-  unique() %>% 
-  na.omit() 
+  unique() 
 
 bfi_nostereo_comp_pro <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
                      (bfi_self_pmc | sub_id), data = data_bfi_prolific)
@@ -536,7 +601,7 @@ Did not change
 #### Simple Slopes
 
 ```{r}
-bfi_nostereo_comp_pro <- emtrends(bfi_nostereo_comp_pro , ~ itt_comp_gmc,
+bfi_nostereo_comp_pro <- emtrends(bfi_nostereo_comp_pro, ~ itt_comp_gmc,
                               var ="bfi_self_pmc",
                               at = c(threat_levels))
 
@@ -581,7 +646,6 @@ summary(bfi_stereo_comp_pro)
 tab_model(bfi_stereo_comp_pro)
 ```
 
-
 Did not change
 
 #### Simple Slopes
@@ -597,7 +661,7 @@ bfi_stereo_comp_pro
 
 Did not change
 
-### arget Condition
+### Target Condition
 
 ```{r}
 bfi_stereo_targ_pro <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition*bfi_stereo_pmc +

@@ -50,7 +50,7 @@ clean_data_bfi <- remove_participants(clean_vars_bfi)
 clean_data_eli <- remove_participants(clean_vars_eli)
 ```
 
-# Confirming Target Threat Factor {.tabset .tabset-fade .tabset-pills}
+# Confirming target-level threat factor {.tabset .tabset-fade .tabset-pills}
 
 ## Correlation matrix
 
@@ -154,11 +154,12 @@ efa_vars_2 <- cfa_vars %>%
 psych::alpha(efa_vars_2)
 ```
 
-## Composite target threat measure
+## Composite target-level threat measure
 
 *Combining realistic and symbolic threat into one measure, like in the pilot.*
 
 ```{r}
+# Add to both the eli and bfi datasets
 clean_data_bfi %<>%   
   mutate(itt_comp = rowMeans(select(., c("realistic_q", "symbolic_q"))))
 
@@ -169,6 +170,7 @@ clean_data_eli %<>%
 ### Mean
 
 ```{r}
+# for these analyses, only need to use one dataset - default to bfi
 mean(clean_data_bfi$itt_comp)
 ```
 
@@ -189,14 +191,16 @@ range(clean_data_bfi$itt_comp)
 ## Summary results
 
 ```{r}
+# getting data for the anova at the subject level; as the data was in long format at the item level, selected variables and did unique to get the correct length for the subject level
 anova_data <- clean_data_bfi %>% 
   select(itt_comp, target_condition, sub_id) %>% 
   unique()
 
+# Re-arranging so contrasts compare to control as reference
 anova_data %<>% 
   mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
-
 contrasts(anova_data$target_condition)
+
 results <- aov(itt_comp ~ target_condition, data = anova_data)
 summary(results)
 ```

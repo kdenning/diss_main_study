@@ -77,16 +77,7 @@ clean_data_bfi %<>%
          itt_comp_gmc = itt_comp - mean(itt_comp, na.rm = TRUE))
 ```
 
-```{r}
-bfi_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
-         target_condition, bfi_targ, bfi_self, bfi_stereo, bfi_stereo_pmc,
-         analog_condition) %>% 
-  unique() %>% 
-  na.omit() 
-```
-
-# Mediation using instruction variable
+# MLMs corresponding to each path
 
 ## Testing effects of individual models (no boot-strapping)
 
@@ -94,7 +85,7 @@ bfi_data <- clean_data_bfi %>%
 
 ```{r}
 path_c <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition +
-       (bfi_self_pmc| sub_id), data = bfi_data)
+       (bfi_self_pmc| sub_id), data = clean_data_bfi)
 summary(path_c)
 tab_model(path_c)
 ```
@@ -129,7 +120,7 @@ path_a_data %>%
 
 ```{r}
 path_b <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
-                     (bfi_self_pmc | sub_id), data = bfi_data)
+                     (bfi_self_pmc | sub_id), data = clean_data_bfi)
 summary(path_b)
 tab_model(path_b)
 ```
@@ -196,11 +187,11 @@ qqnorm(ranef(path_b)$sub_id$`(Intercept)`,
 plot_model(path_b, type='diag')
 ```
 
-## Bootstrapping
+# Bootstrapping code
 
 ```{r parallel processing version, eval=FALSE}
 # Set-up for mediational model -------------------------------------------------
-# Getting basic data cleaning data before for loops
+# Getting basic limited data to rotate through for for loops for processing
 data_4_med_bfi <- clean_data_bfi %>% 
   select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, itt_comp_gmc,
          target_condition, analog_condition) %>% 

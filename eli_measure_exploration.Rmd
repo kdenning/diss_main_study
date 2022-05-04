@@ -65,7 +65,7 @@ wide_data <- import("data/diss_main_combined_data_basic_clean.csv")
 #                           216, 247, 253, 258, 265, 275, 291, 293, 313, 324, 349,
 #                           362, 375, 385, 387, 409, 410, 460, 474, 483, 486), ] 
 
-# Cleaning data using functions
+# Cleaning data using functions - only need ELI for this rmd
 long_data_eli <- get_wrangled_eli(wide_data)
 
 clean_vars_eli <- get_vars_cleaned(long_data_eli)
@@ -80,18 +80,9 @@ clean_data_eli %<>%
 # Exploring the ELI
 
 ```{r}
-eli_data <- clean_data_eli %>% 
-  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
-         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
-         analog_condition, itt_comp) %>% 
-  unique() %>% 
-  na.omit() 
-
+# Getting data only using the 5 items used in Denning & Hodges (2022)
 eli5_data <- clean_data_eli %>% 
   filter(eli_number %in% c("1", "2", "3", "4", "5")) %>% 
-  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
-         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
-         analog_condition, itt_comp) %>% 
   unique() %>% 
   na.omit() 
 ```
@@ -230,10 +221,9 @@ Again, higher correlations than for the self, but still only .35 as the highest.
 ### With self
 
 ```{r}
-
-eli_randint_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
+eli_randint_test <- lmer(eli_targ_pmc ~ eli_self_pmc + 
                      (1 | sub_id), 
-                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
+                   data = clean_data_eli) 
 
 summary(eli_randint_test)
 ```
@@ -245,14 +235,24 @@ The random variance for the intercept is 0, which is causing the singularity. Th
 *Person mean centered variables*
 
 ```{r}
-eli_coeffs_per_sub_c  <- lmList(eli_targ_pmc ~ 1 + eli_self_pmc | sub_id, eli_data)
+# The lmList code below errored when using "clean_data_eli" because of "missing data" but there is none in the main variables
+eli_vars_lmlist <- clean_data_eli %>% 
+  select(eli_targ_pmc, eli_self_pmc, sub_id, eli_number, eli_targ, eli_self) %>% 
+  na.omit()
+
+length(eli_vars_lmlist$sub_id) #same length before cleaning
+
+# Checking if there are na's in any column - there are none; will just use subsetted df for indivudal intercepts and slopes
+sapply(eli_vars_lmlist, function(x)all(any(is.na(x))))
+
+eli_coeffs_per_sub_c  <- lmList(eli_targ_pmc ~ 1 + eli_self_pmc | sub_id, eli_vars_lmlist)
 eli_coeffs_per_sub_c
 ```
 
 *Uncentered variables*
 
 ```{r}
-eli_coeffs_per_sub  <- lmList(eli_targ ~ 1 + eli_self | sub_id, eli_data)
+eli_coeffs_per_sub  <- lmList(eli_targ ~ 1 + eli_self | sub_id, eli_vars_lmlist)
 eli_coeffs_per_sub
 ```
 
@@ -271,7 +271,7 @@ ggplot(clean_data_eli, aes(eli_self_pmc, eli_targ_pmc)) +
 
 eli_randint_only <- lmer(eli_targ_pmc ~ 1 + # itt does not work as a RE; model does not converge
                      (1 | sub_id), 
-                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
+                   data = clean_data_eli) # Same as above, works with clean_data but not the smaller df specific to this analysis
 
 summary(eli_randint_only)
 ```
@@ -294,7 +294,7 @@ summary(eli5_randint_test)
 ```{r}
 eli_randslopes_test <- lmer(eli_targ_pmc ~ eli_self_pmc + # itt does not work as a RE; model does not converge
                      (0 + eli_self_pmc | sub_id), 
-                   data = eli_data) 
+                   data = clean_data_eli) 
 
 
 summary(eli_randslopes_test)
@@ -304,83 +304,12 @@ Running without the random intercept fixes the issue
 
 # Additional ELI analyses {.tabset .tabset-fade .tabset-pills}
 
-## Threat composite 
-
-```{r}
-comp_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc + # itt does not work as a RE; model does not converge
-                     (0 + eli_self_pmc | sub_id), 
-                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
-
-
-summary(comp_eli_randslopes)
-tab_model(comp_eli_randslopes,
-          digits = 3)
-```
-
-### Simple slopes
-
-```{r}
-threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
-comp_simpslopes_eli <- emtrends(comp_eli_randslopes, ~ itt_comp_gmc,
-                              var ="eli_self_pmc",
-                              at = threat_levels)
-
-comp_simpslopes_eli 
-test(comp_simpslopes_eli)
-pairs(comp_simpslopes_eli)
-```
-
-### Visualization
-
-```{r}
-comp_eli_maineffect <- effect("eli_self_pmc:itt_comp_gmc",
-                         xlevels = list(itt_comp_gmc = c(-1.07, 0, 1.07)),
-                         mod = comp_eli_randslopes)
-
-comp_eli_maineffect <- as.data.frame(comp_eli_maineffect)
-comp_eli_maineffect$itt_comp_gmc <- as.factor(comp_eli_maineffect$itt_comp_gmc)
-
-ggplot(comp_eli_maineffect, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = FALSE,
-                colour = "black", 
-                aes(linetype = itt_comp_gmc)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target-level threat",
-                        breaks = c(-1.07, 0, 1.07), 
-                       labels = c("Low",
-                                  "Average",
-                                  "High"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(x = "ELI responses for self",
-       y = "ELI responses for target")
-```
-
-### Assumptions
-
-```{r}
-# checking normality of conditional residuals
-qqnorm(residuals(comp_eli_randslopes), main="Q-Q plot for conditional residuals")
-
-# checking the normality of the random effects (here random intercept):
-qqnorm(ranef(comp_eli_randslopes)$sub_id$eli_self_pmc,
-       main="Q-Q plot for the self random effect")
-
-plot_model(comp_eli_randslopes, type='diag')
-```
-
-Also seems evenly spread but diagonal
-
 ## Target variable
 
 ```{r}
-cond_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition + # itt does not work as a RE; model does not converge
+cond_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition + 
                      (0 + eli_self_pmc | sub_id), 
-                   data = eli_data) # Same as above, works with clean_data but not the smaller df specific to this analysis
+                   data = clean_data_eli) 
 
 
 summary(cond_eli_randslopes)
@@ -388,7 +317,7 @@ tab_model(cond_eli_randslopes,
           digits = 3)
 ```
 
-### Simple Slopes
+### Simple Slopes & Pairwise Comparisons
 
 ```{r}
 targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
@@ -422,7 +351,7 @@ Also seems evenly spread but diagonal
 ### Visualization
 
 ```{r}
-eli_data %<>% 
+clean_data_eli %<>% 
   mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
 
 target_labels <- c("CONTROL" = "Control target",
@@ -458,11 +387,11 @@ ggplot(eli_cond_df, aes(eli_self_pmc, fit, group = target_condition)) +
        y = "ELI responses for target")
 ```
 
-## Analog x threat composite
+## Instruction variable x threat composite
 
 ```{r}
-analogcomp_eli_randslopes <- lmer(eli_targ ~ eli_self_pmc*analog_condition*itt_comp_gmc +
-       (0 + eli_self_pmc | sub_id), data = eli_data)
+analogcomp_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*itt_comp_gmc +
+       (0 + eli_self_pmc | sub_id), data = clean_data_eli)
 summary(analogcomp_eli_randslopes)
 
 tab_model(analogcomp_eli_randslopes)
@@ -471,8 +400,8 @@ tab_model(analogcomp_eli_randslopes)
 ## Analog x target variable
 
 ```{r}
-analogcond_eli_randslopes <- lmer(eli_targ ~ eli_self_pmc*analog_condition*target_condition +
-       (0 + eli_self_pmc | sub_id), data = eli_data)
+analogcond_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*target_condition +
+       (0 + eli_self_pmc | sub_id), data = clean_data_eli)
 summary(analogcond_eli_randslopes)
 
 tab_model(analogcond_eli_randslopes)
