@@ -431,6 +431,86 @@ qqnorm(ranef(cond_eli_stereo)$sub_id$eli_stereo_pmc,
 plot_model(cond_eli_stereo, type='diag')
 ```
 
+# Reducing residual counter-projection - ELI {.tabset .tabset-fade .tabset-pills}
+
+## Analog x threat composite - ELI
+
+```{r}
+clean_data_eli %<>% 
+  mutate(analog_condition = forcats::fct_relevel(analog_condition,
+                                                        c("control",
+                                                        "analog")))
+contrasts(clean_data_eli$analog_condition)
+
+analogcompresid_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*analog_condition*itt_comp_gmc*eli_stereo_pmc +
+       (0 + eli_self_pmc | sub_id), data = clean_data_eli)
+summary(analogcompresid_eli_randslopes)
+
+tab_model(analogcompresid_eli_randslopes)
+confint(analogcompresid_eli_randslopes)
+
+threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
+analog_levels = list(analog_condition = c("analog", "control"))
+simslopes_analog_resid <- emtrends(analogcompresid_eli_randslopes, ~ itt_comp_gmc*analog_condition,
+                              var ="eli_self_pmc",
+                              at = c(threat_levels, analog_levels))
+```
+
+## Simple slopes
+
+```{r}
+simslopes_analog_resid
+test(simslopes_analog_resid)
+```
+
+## Pairwise
+
+```{r}
+pairs(simslopes_analog_resid)
+```
+
+## Visualization
+
+```{r}
+analog_resid_df <- effect("eli_self_pmc:analog_condition:itt_comp_gmc",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        analog_condiion = "analog", "control"),
+                         mod = analogcompresid_eli_randslopes)
+
+analog_resid_df <- as.data.frame(analog_resid_df)
+analog_resid_df$itt_comp_gmc <- as.factor(analog_resid_df$itt_comp_gmc)
+analog_resid_df$analog_condition <- as.factor(analog_resid_df$analog_condition)
+
+analog_resid_df %<>% 
+         mutate(analog_condition = dplyr::recode(analog_condition,
+                                         `analog` = "Analogous instruction \ncondition",
+                                         `control` = "Control condition"))
+
+  
+
+ggplot(analog_resid_df, aes(eli_self_pmc, fit, group = itt_comp_gmc)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = itt_comp_gmc)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(vars(analog_condition)) +
+  scale_linetype_manual("Target-level threat",
+                        breaks = c("-1.07", "0", "1.07"), 
+                       labels = c("Low",
+                                  "Average",
+                                  "High"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+
+
 # Checking effect of removing UO participants - BFI {.tabset .tabset-fade .tabset-pills}
 
 ## No stereotyping
