@@ -60,7 +60,7 @@ clean_data_eli %<>%
          itt_comp_gmc = scale(itt_comp, center = T, scale = F))
 ```
 
-# Other measures predicted by target threat
+# Other measures of threat predicted by target variable
 
 ```{r}
 data_threat_lm <- clean_data_bfi %>% 
@@ -105,47 +105,123 @@ anova(explicit_targ_lm)
 
 # BFI
 
-## Composite on counter-projection
-
-*This analysis was done in other steps of the pre-registered analysis and the location is stated for each below. Some models were copied here for model comparisons. This also applies to the ELI.*
-
-### Composite alone
-
-```{r}
-data_bfi <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ, bfi_targ_pmc, bfi_self, 
-         bfi_self_pmc,analog_condition,
-         itt_comp_gmc, target_condition, bfi_stereo, bfi_stereo_pmc, 
-         distance_coffee, distance_town, explicit_targ, explicit_group) %>% 
-  unique() %>% 
-  na.omit() 
-
-model1_bfi_randslopes <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc + 
-                     (bfi_self_pmc | sub_id), 
-                   data = data_bfi) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
-
-tab_model(model1_bfi_randslopes,
-          digits = 3)
-```
-
-### Target condition alone
+## Target condition alone
 
 ```{r}
 bfi_targ <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition + 
                      (bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                   data = clean_data_bfi) 
 
 summary(bfi_targ)
 
 tab_model(bfi_targ)
 ```
 
-### Target condition x composite
+### Simple slopes
+
+```{r}
+bfi_targ_ss <- emtrends(bfi_targ, ~ target_condition,
+                              var ="bfi_self_pmc",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM")))
+
+bfi_targ_ss
+```
+
+### Visualization
+
+```{r}
+effects_cond_bfi <- effect("bfi_self_pmc:target_condition",
+                         xlevels = list(target_condition = c("CONTROL", "LOSS", "WARM")),
+                         mod = bfi_targ )
+
+effects_cond_bfi <- as.data.frame(effects_cond_bfi)
+effects_cond_bfi %<>% 
+  mutate(target_condition = as.factor(forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS"))))
+
+ggplot(effects_cond_bfi, aes(bfi_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target threat condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Least threatening",
+                                  "Moderately threatening",
+                                  "Most threatening"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+## Target condition alone - stereo
+
+```{r}
+bfi_targ_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition*bfi_stereo_pmc+ 
+                     (bfi_self_pmc | sub_id), 
+                   data = clean_data_bfi) 
+
+summary(bfi_targ_stereo)
+
+tab_model(bfi_targ_stereo)
+```
+
+### Simple slopes
+
+```{r}
+bfi_targ_stereo_ss <- emtrends(bfi_targ_stereo, ~ target_condition,
+                              var ="bfi_self_pmc",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM")))
+
+bfi_targ_stereo_ss
+```
+
+### Visualization
+
+```{r}
+effects_cond_bfi_stereo <- effect("bfi_self_pmc:target_condition",
+                         xlevels = list(target_condition = c("CONTROL", "LOSS", "WARM")),
+                         mod = bfi_targ_stereo)
+
+effects_cond_bfi_stereo <- as.data.frame(effects_cond_bfi_stereo)
+
+effects_cond_bfi_stereo %<>% 
+  mutate(target_condition = as.factor(forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS"))))
+
+ggplot(effects_cond_bfi_stereo, aes(bfi_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target threat condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Least threatening",
+                                  "Moderately threatening",
+                                  "Most threatening"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(x = "BFI responses for self",
+       y = "BFI responses for target")
+```
+
+## Target condition x composite
 
 ```{r}
 bfi_targ_comp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition + 
                      (bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                   data = clean_data_bfi) 
 
 summary(bfi_targ_comp)
 
@@ -155,33 +231,20 @@ tab_model(bfi_targ_comp,
 
 Results indicate that the main effect of the target-level threat composite goes away when we include threat condition. There is a main effect of condition on projection for both contrasts. There is also an interaction of target condition and the the threat composite for the contrast comparing the warm target to the control.
 
-#### Simple Slopes
-
-##### Target condition main effect
+### Simple Slopes
 
 ```{r}
-bfi_targ_comp_simpslopes_me <- emtrends(bfi_targ_comp, ~ target_condition,
-                              var ="bfi_self_pmc",
+bfi_targ_comp_simpslopes_int <- emtrends(bfi_targ_comp, ~ itt_comp_gmc*target_condition,
+                              var = "bfi_self_pmc",
                               at = list(target_condition = c("CONTROL", 
                                                              "LOSS", 
-                                                             "WARM")))
-
-bfi_targ_comp_simpslopes_me
-```
-
-##### Interaction
-
-```{r}
-targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
-
-bfi_targ_comp_simpslopes_int <- emtrends(bfi_targ_comp ~ target_condition*itt_comp_gmc,
-                              var ="bfi_self_pmc",
-                              at = c(targ_levels, threat_levels))
+                                                             "WARM"),
+                                        itt_comp_gmc = c(-1.07, 0.0, 1.07)))
 
 bfi_targ_comp_simpslopes_int
 ```
 
-#### Visualization
+### Visualization
 
 ```{r}
 bfi_targ_comp_int_viz <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
@@ -223,6 +286,75 @@ ggplot(bfi_targ_comp_int_viz, aes(bfi_self_pmc, fit, group = target_condition)) 
        y = "BFI responses for target")
 ```
 
+## Target condition x composite - stereotyping
+
+```{r}
+bfi_targ_comp_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*target_condition*bfi_stereo_pmc + 
+                     (bfi_self_pmc | sub_id), 
+                   data = clean_data_bfi) 
+
+summary(bfi_targ_comp_stereo)
+
+tab_model(bfi_targ_comp_stereo,
+          digits = 3)
+```
+
+Results indicate that the main effect of the target-level threat composite goes away when we include threat condition. There is a main effect of condition on projection for both contrasts. There is also an interaction of target condition and the the threat composite for the contrast comparing the warm target to the control.
+
+### Simple Slopes
+
+```{r}
+bfi_targ_comp_simpslopes_int_stereo <- emtrends(bfi_targ_comp_stereo, ~ itt_comp_gmc*target_condition,
+                              var = "bfi_self_pmc",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM"),
+                                        itt_comp_gmc = c(-1.07, 0.0, 1.07)))
+
+bfi_targ_comp_simpslopes_int_stereo
+```
+
+### Visualization
+
+```{r}
+bfi_targ_comp_int_viz_stereo <- effect("bfi_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = bfi_targ_comp_stereo)
+
+bfi_targ_comp_int_viz_stereo <- as.data.frame(bfi_targ_comp_int_viz_stereo)
+bfi_targ_comp_int_viz_stereo$itt_comp_gmc <- as.factor(bfi_targ_comp_int_viz_stereo$itt_comp_gmc)
+bfi_targ_comp_int_viz_stereo$target_condition <- as.factor(bfi_targ_comp_int_viz_stereo$target_condition)
+
+threat_labels <- c("-1.07" = "Low target \n level threat",
+                   "0" = "Average target \n level threat",
+                   "1.07" = "High target \n level threat")
+
+ggplot(bfi_targ_comp_int_viz_stereo, aes(bfi_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~itt_comp_gmc,
+             labeller = labeller(itt_comp_gmc = threat_labels)) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Control",
+                                  "Warm",
+                                  "Loss"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(title = "Projection by target-level threat and target condition",
+         subtitle = "Using the BFI; After accounting for stereotyping",
+       x = "BFI responses for self",
+       y = "BFI responses for target")
+```
 
 ## Distance
 
@@ -231,7 +363,7 @@ ggplot(bfi_targ_comp_int_viz, aes(bfi_self_pmc, fit, group = target_condition)) 
 ```{r}
 bfi_coffee <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee + 
                      (bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                   data = clean_data_bfi) 
 
 summary(bfi_coffee)
 
@@ -239,7 +371,7 @@ tab_model(bfi_coffee)
 
 bfi_coffee_a <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee*analog_condition + 
                      (bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                   data = clean_data_bfi) 
 
 summary(bfi_coffee_a)
 
@@ -249,7 +381,11 @@ tab_model(bfi_coffee_a)
 #### Model comparison with threat composite
 
 ```{r}
-anova(model1_bfi_randslopes, bfi_coffee) 
+# threat composite model for comparison
+bfi_nostereo_comp <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = clean_data_bfi)
+
+anova(bfi_nostereo_comp, bfi_coffee) 
 ```
 
 Though distance in the coffee shop does interact, the model fit is better for the threat composite using the ITT due to smaller values on th eAIC, BIC, and deviance. However, they are not significantly different on the chi-square.
@@ -258,8 +394,8 @@ Though distance in the coffee shop does interact, the model fit is better for th
 
 ```{r}
 bfi_coffee2 <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_coffee*target_condition + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                     (bfi_self_pmc | sub_id), 
+                   data = clean_data_bfi) 
 
 summary(bfi_coffee2)
 
@@ -272,8 +408,8 @@ No interaction
 
 ```{r}
 bfi_town <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_town + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                     (bfi_self_pmc | sub_id), 
+                   data = clean_data_bfi) 
 
 summary(bfi_town)
 
@@ -283,7 +419,7 @@ tab_model(bfi_town)
 #### Model comparison with threat composite
 
 ```{r}
-anova(model1_bfi_randslopes, bfi_town) 
+anova(bfi_nostereo_comp, bfi_town) 
 ```
 
 ```{r}
@@ -296,8 +432,8 @@ The threat composite has the better fit than the town measure, and the coffee me
 
 ```{r}
 bfi_town2 <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_town*target_condition + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                     (bfi_self_pmc | sub_id), 
+                   data = clean_data_bfi) 
 
 summary(bfi_town2)
 
@@ -312,8 +448,8 @@ No interaction and the effect of town actually goes away after accounting for ta
 
 ```{r}
 bfi_explicit_g <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_group + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                     (bfi_self_pmc | sub_id), 
+                   data = clean_data_bfi) 
 
 summary(bfi_explicit_g)
 
@@ -325,7 +461,7 @@ Though it does not predict conditions, group threat still leads to counter-proje
 #### Model comparison with threat composite
 
 ```{r}
-anova(model1_bfi_randslopes, bfi_explicit_g) 
+anova(bfi_nostereo_comp, bfi_explicit_g) 
 ```
 
 However, it has less fit than the composite measure related to the target.
@@ -334,8 +470,8 @@ However, it has less fit than the composite measure related to the target.
 
 ```{r}
 bfi_explicit_gc <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_group*target_condition + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                     (bfi_self_pmc | sub_id), 
+                   data = clean_data_bfi) 
 
 summary(bfi_explicit_gc)
 
@@ -348,8 +484,8 @@ Not suprisingly, there is not interaction with condition. Also, when threat is a
 
 ```{r}
 bfi_explicit_t <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_targ + 
-                     (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                     (bfi_self_pmc | sub_id), 
+                   data = clean_data_bfi) 
 
 summary(bfi_explicit_t)
 
@@ -361,7 +497,7 @@ tab_model(bfi_explicit_t)
 ##### With the composite
 
 ```{r}
-anova(model1_bfi_randslopes, bfi_explicit_t) 
+anova(bfi_nostereo_comp, bfi_explicit_t) 
 ```
 
 These models are near identical in all criteria - further supporting my previous belief that my scale is definitely measuring target-level threat. Plus, these are the best fitting of the threat scales we used in explaining counter-projection.
@@ -379,7 +515,7 @@ Target-level is a better fit than group-level.
 ```{r}
 bfi_explicit_tc <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_targ*target_condition + 
                      (0 + bfi_self_pmc | sub_id), 
-                   data = data_bfi) 
+                   data = clean_data_bfi) 
 
 summary(bfi_explicit_tc)
 
@@ -393,64 +529,44 @@ Unlike with the composite measure, the explicit targ measure remains significant
 ## Target condition only
 
 ```{r}
-data_eli <- clean_data %>% 
-  select(sub_id, eli_number, eli_targ_pmc, eli_self_pmc, itt_comp_gmc,
-         target_condition, eli_targ, eli_self, eli_stereo, eli_stereo_pmc,
-         distance_coffee, distance_town, explicit_targ, explicit_group) %>% 
-  unique() %>% 
-  na.omit() 
-
 eli_1c <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition +
                      (0 + eli_self_pmc | sub_id), 
-                   data = data_eli) 
+                   data = clean_data_eli) 
 
 summary(eli_1c)
 
 tab_model(eli_1c)
 ```
 
-## Condition and threat
+### Simple Slopes
 
 ```{r}
-
-model1b_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc
-                               *target_condition + 
-                     (0 + eli_self_pmc | sub_id), 
-                   data = data_eli) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
-
-tab_model(model1b_eli_randslopes,
-          digits = 3)
-```
-
-Similiar to the BFI, but no interaction.
-
-#### Simple Slopes
-
-##### Target condition main effect
-
-```{r}
-mod1b_simpslopes_eli_me <- emtrends(model1b_eli_randslopes, ~ target_condition,
+eli_targ_ss <- emtrends(eli_1c, ~ target_condition,
                               var ="eli_self_pmc",
                               at = list(target_condition = c("CONTROL", 
                                                              "LOSS", 
                                                              "WARM")))
 
-mod1b_simpslopes_bfi_me
+eli_targ_ss 
 ```
 
-#### Visualization
+### Visualization
 
 ```{r}
-mod1b_eli <- effect("eli_self_pmc:target_condition",
+eli_targ_effects <- effect("eli_self_pmc:target_condition",
                          xlevels = list(target_condition = c("CONTROL",
                                                              "WARM",
                                                              "LOSS")),
-                         mod = model1b_eli_randslopes)
+                         mod = eli_1c)
 
-mod1b_eli <- as.data.frame(mod1b_eli)
-mod1b_eli$target_condition <- as.factor(mod1b_eli$target_condition)
+eli_targ_effects <- as.data.frame(eli_targ_effects)
+eli_targ_effects$target_condition <- as.factor(eli_targ_effects$target_condition)
 
-ggplot(mod1b_eli, aes(eli_self_pmc, fit, group = target_condition)) +
+eli_targ_effects %<>% 
+  mutate(target_condition = as.factor(forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS"))))
+
+
+ggplot(eli_targ_effects, aes(eli_self_pmc, fit, group = target_condition)) +
   geom_smooth(method = "lm", 
                 size = .7, 
                 se = FALSE,
@@ -460,15 +576,206 @@ ggplot(mod1b_eli, aes(eli_self_pmc, fit, group = target_condition)) +
     theme(legend.key.size = unit(1, "cm")) +
   scale_linetype_manual("Target condition",
                         breaks = c("CONTROL", "WARM", "LOSS"), 
-                       labels = c("Control",
-                                  "Warm",
-                                  "Loss"),
+                       labels = c("Least threatening",
+                                  "Moderately threatening",
+                                  "Most threatening"),
                        values = c("solid",
                                   "dashed",
                                   "dotted")) +
-    labs(title = "Projection by target condition",
-         subtitle = "Using the ELI; Accounting for threat composite",
+    labs(x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+## Target condition only - stereotyping
+
+```{r}
+eli_1c_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*target_condition*eli_stereo_pmc +
+                     (0 + eli_self_pmc | sub_id), 
+                   data = clean_data_eli) 
+
+summary(eli_1c_stereo)
+
+tab_model(eli_1c_stereo)
+```
+
+### Simple Slopes
+
+```{r}
+eli_targ_stereo_ss <- emtrends(eli_1c_stereo, ~ target_condition,
+                              var ="eli_self_pmc",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM")))
+
+eli_targ_stereo_ss 
+```
+
+### Visualization
+
+```{r}
+eli_targ_effects_stereo <- effect("eli_self_pmc:target_condition",
+                         xlevels = list(target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = eli_1c_stereo)
+
+eli_targ_effects_stereo <- as.data.frame(eli_targ_effects_stereo)
+eli_targ_effects_stereo$target_condition <- as.factor(eli_targ_effects_stereo$target_condition)
+
+eli_targ_effects_stereo %<>% 
+  mutate(target_condition = as.factor(forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS"))))
+
+
+ggplot(eli_targ_effects_stereo, aes(eli_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Least threatening",
+                                  "Moderately threatening",
+                                  "Most threatening"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+## Condition and threat
+
+```{r}
+
+model1b_eli_randslopes <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*target_condition + 
+                     (0 + eli_self_pmc | sub_id), 
+                   data = clean_data_eli) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
+
+tab_model(model1b_eli_randslopes,
+          digits = 3)
+```
+
+Similiar to the BFI, but no interaction.
+
+### Simple slopes
+
+```{r}
+eli_targ_comp_simpslopes <- emtrends(model1b_eli_randslopes, ~ itt_comp_gmc*target_condition,
+                              var = "eli_self_pmc",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM"),
+                                        itt_comp_gmc = c(-1.07, 0.0, 1.07)))
+
+eli_targ_comp_simpslopes
+```
+
+### Visualization
+
+```{r}
+eli_targ_cond_int_effects <- effect("eli_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = model1b_eli_randslopes)
+
+eli_targ_cond_int_effects <- as.data.frame(eli_targ_cond_int_effects)
+eli_targ_cond_int_effects$itt_comp_gmc <- as.factor(eli_targ_cond_int_effects$itt_comp_gmc)
+eli_targ_cond_int_effects$target_condition <- as.factor(eli_targ_cond_int_effects$target_condition)
+
+threat_labels <- c("-1.07" = "Low target \n level threat",
+                   "0" = "Average target \n level threat",
+                   "1.07" = "High target \n level threat")
+
+ggplot(eli_targ_cond_int_effects, aes(eli_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~itt_comp_gmc,
+             labeller = labeller(itt_comp_gmc = threat_labels)) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Least threatening",
+                                  "Moderately threatening",
+                                  "Most threatening"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(
        x = "ELI responses for self",
        y = "ELI responses for target")
 ```
 
+## Condition and threat - stereotyping
+
+```{r}
+
+model1b_eli_randslopes_stereo <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*target_condition*eli_stereo_pmc + 
+                     (0 + eli_self_pmc | sub_id), 
+                   data = clean_data_eli) # Model only works with the whole data-set (clean_data), not when filtered down to only include observations (thus none repeated) for this analysis with mod_1_data_bfi
+
+tab_model(model1b_eli_randslopes_stereo,
+          digits = 3)
+```
+
+### Simple slopes
+
+```{r}
+eli_targ_comp_simpslopes_stereo <- emtrends(model1b_eli_randslopes_stereo, ~ itt_comp_gmc*target_condition,
+                              var = "eli_self_pmc",
+                              at = list(target_condition = c("CONTROL", 
+                                                             "LOSS", 
+                                                             "WARM"),
+                                        itt_comp_gmc = c(-1.07, 0.0, 1.07)))
+
+eli_targ_comp_simpslopes_stereo
+```
+
+### Visualization
+
+```{r}
+eli_targ_cond_int_effects_stereo <- effect("eli_self_pmc:itt_comp_gmc:target_condition",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS")),
+                         mod = model1b_eli_randslopes_stereo)
+
+eli_targ_cond_int_effects_stereo <- as.data.frame(eli_targ_cond_int_effects_stereo)
+eli_targ_cond_int_effects_stereo$itt_comp_gmc <- as.factor(eli_targ_cond_int_effects_stereo$itt_comp_gmc)
+eli_targ_cond_int_effects_stereo$target_condition <- as.factor(eli_targ_cond_int_effects_stereo$target_condition)
+
+threat_labels <- c("-1.07" = "Low target \n level threat",
+                   "0" = "Average target \n level threat",
+                   "1.07" = "High target \n level threat")
+
+ggplot(eli_targ_cond_int_effects_stereo, aes(eli_self_pmc, fit, group = target_condition)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = target_condition)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~itt_comp_gmc,
+             labeller = labeller(itt_comp_gmc = threat_labels)) +
+  scale_linetype_manual("Target condition",
+                        breaks = c("CONTROL", "WARM", "LOSS"), 
+                       labels = c("Least threatening",
+                                  "Moderately threatening",
+                                  "Most threatening"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(
+       x = "ELI responses for self",
+       y = "ELI responses for target")
+```

@@ -128,6 +128,8 @@ tab_model(path_b)
 
 #### Simple Slopes
 
+*These results correspond to the simple slopes reported in "Related simple slopes for target-level threat" section*
+
 ```{r}
 threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
 pathb_simpslopes <- emtrends(path_b, ~ itt_comp_gmc,
