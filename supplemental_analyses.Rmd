@@ -745,12 +745,12 @@ The pattern did not change after stereotyping was accounted for
 
 # Checking if difference between average and idiographic stereotypes explain counter-projection
 
-## ELI
+## ELI x target-level threat
 
 ```{r}
 # Grouped by threat condition bc stereotype likely varies by condition; grouped by item bc stereotype may vary by item
 eli_stereo_exp_data <- clean_data_eli %>% 
-  group_by(eli_number, target_condition) %>% 
+  group_by(eli_number) %>% 
   mutate(eli_stereo_ave = mean(eli_stereo)) %>% 
   ungroup() %>% 
   mutate(eli_diff = abs(eli_stereo - eli_stereo_ave))
@@ -859,13 +859,76 @@ ggplot(effects_diff_df_int, aes(eli_self_pmc, fit, group = eli_diff)) +
 
 In the high threat condition, there is more variation from the stereotype, with people 
 
+## ELI x target-condition
+
+```{r}
+# Grouped by item bc stereotype may vary by item
+eli_diff_mod_cond <- lmer(eli_targ_pmc ~ eli_self_pmc*eli_diff*target_condition +
+       (0 + eli_self_pmc | sub_id), data = eli_stereo_exp_data)
+
+tab_model(eli_diff_mod_cond)
+summary(eli_diff_mod_cond)
+```
+
+### Simple slopes
+
+```{r}
+diff_eli_cond_ss <- emtrends(eli_diff_mod_cond, ~ target_condition*eli_diff,
+                              var ="eli_self_pmc",
+                              at = c(target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS"),
+                                     diff_levels))
+diff_eli_cond_ss
+```
+
+```{r}
+eli_cond_diff_effects <- effect("eli_self_pmc:eli_diff:target_condition",
+                         xlevels = list(target_condition = c("CONTROL",
+                                                             "WARM",
+                                                             "LOSS"),
+                                        eli_diff = c(0.0, 0.6, 1.2)),
+                         mod = eli_diff_mod_cond)
+
+eli_cond_diff_effects <- as.data.frame(eli_cond_diff_effects)
+eli_cond_diff_effects$target_condition <- as.factor(eli_cond_diff_effects$target_condition)
+eli_cond_diff_effects$eli_diff <- as.factor(eli_cond_diff_effects$eli_diff)
+
+eli_cond_diff_effects %<>% 
+  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
+
+target_labels <- c("CONTROL" = "Least threatening \ntarget",
+                   "WARM" = "Moderately \nthreatening target",
+                   "LOSS" = "Most threatening \ntarget")
+
+ggplot(eli_cond_diff_effects, aes(eli_self_pmc, fit, group = eli_diff)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = eli_diff)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~target_condition,
+             labeller = labeller(target_condition = target_labels)) 
+cale_linetype_manual("Difference from \ngroup stereotype",
+                        breaks = c("0", "0.6", "1.2"), 
+                       labels = c("None",
+                                  "1 SD",
+                                  "2 SD"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs( x = "ELI responses for self",
+       y = "ELI responses for target")
+```
 
 ## BFI
 
 ```{r}
-# Grouped by threat condition bc stereotype likely varies by condition; grouped by item bc stereotype may vary by item
+# Gouped by item bc stereotype may vary by item
 bfi_stereo_exp_data <- clean_data_bfi %>% 
-  group_by(bfi_number, target_condition) %>% 
+  group_by(bfi_number) %>% 
   mutate(bfi_stereo_ave = mean(bfi_stereo)) %>% 
   ungroup() %>% 
   mutate(bfi_diff = abs(bfi_stereo - bfi_stereo_ave))
