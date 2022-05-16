@@ -742,3 +742,139 @@ honesty_ss_stereo
 ```
 
 The pattern did not change after stereotyping was accounted for
+
+# Checking if difference between average and idiographic stereotypes explain counter-projection
+
+## ELI
+
+```{r}
+# Grouped by threat condition bc stereotype likely varies by condition; grouped by item bc stereotype may vary by item
+eli_stereo_exp_data <- clean_data_eli %>% 
+  group_by(eli_number, target_condition) %>% 
+  mutate(eli_stereo_ave = mean(eli_stereo)) %>% 
+  ungroup() %>% 
+  mutate(eli_diff = abs(eli_stereo - eli_stereo_ave))
+
+eli_diff_mod <- lmer(eli_targ_pmc ~ eli_self_pmc*eli_diff*itt_comp_gmc +
+       (0 + eli_self_pmc | sub_id), data = eli_stereo_exp_data)
+
+tab_model(eli_diff_mod)
+summary(eli_diff_mod)
+```
+
+### Simple slopes
+
+#### Main effect diff
+
+```{r}
+psych::describe(eli_stereo_exp_data$eli_diff)
+
+diff_levels = list(eli_diff = c(0.0, 0.6, 1.2)) # since this is a difference score with 0 difference being the bottom of the range; the sds only go up
+diff_eli_ss_me <- emtrends(eli_diff_mod, ~ eli_diff,
+                              var ="eli_self_pmc",
+                              at = c(diff_levels))
+diff_eli_ss_me
+```
+
+#### Interaction
+
+```{r}
+
+diff_eli_ss <- emtrends(eli_diff_mod, ~ itt_comp_gmc*eli_diff,
+                              var ="eli_self_pmc",
+                              at = c(threat_levels, diff_levels))
+diff_eli_ss
+```
+
+### Visualizations
+
+#### Main effect
+
+```{r}
+effects_diff_df_me <- effect("eli_self_pmc:eli_diff",
+                         xlevels = list(eli_diff = c(0.0, 0.6, 1.2)),  # since this is a difference score with 0 difference being the bottom of the range; the sds only go up
+                         mod = eli_diff_mod)
+
+effects_diff_df_me <- as.data.frame(effects_diff_df_me)
+effects_diff_df_me$eli_diff <- as.factor(effects_diff_df_me$eli_diff)
+  
+ggplot(effects_diff_df_int, aes(eli_self_pmc, fit, group = eli_diff)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = eli_diff)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  scale_linetype_manual("Difference from \ngroup stereotype",
+                        breaks = c("0", "0.6", "1.2"), 
+                       labels = c("None",
+                                  "1 SD",
+                                  "2 SD"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+#### Interaction
+
+```{r}
+effects_diff_df_int <- effect("eli_self_pmc:eli_diff:itt_comp_gmc",
+                         xlevels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07),
+                                        eli_diff = c(0.0, 0.6, 1.2)),  # since this is a difference score with 0 difference being the bottom of the range; the sds only go up
+                         mod = eli_diff_mod)
+
+effects_diff_df_int <- as.data.frame(effects_diff_df_int)
+effects_diff_df_int$itt_comp_gmc <- as.factor(effects_diff_df_int$itt_comp_gmc)
+effects_diff_df_int$eli_diff <- as.factor(effects_diff_df_int$eli_diff)
+  
+threat_labels <- c("-1.07" = "Low target \n level threat",
+                   "0" = "Average target \n level threat",
+                   "1.07" = "High target \n level threat")
+
+ggplot(effects_diff_df_int, aes(eli_self_pmc, fit, group = eli_diff)) +
+  geom_smooth(method = "lm", 
+                size = .7, 
+                se = FALSE,
+                colour = "black", 
+                aes(linetype = eli_diff)) +
+    theme_minimal(base_size = 13) +
+    theme(legend.key.size = unit(1, "cm")) +
+  facet_wrap(~itt_comp_gmc,
+             labeller = labeller(itt_comp_gmc = threat_labels)) +
+  scale_linetype_manual("Difference from \ngroup stereotype",
+                        breaks = c("0", "0.6", "1.2"), 
+                       labels = c("None",
+                                  "1 SD",
+                                  "2 SD"),
+                       values = c("solid",
+                                  "dashed",
+                                  "dotted")) +
+    labs(x = "ELI responses for self",
+       y = "ELI responses for target")
+```
+
+
+In the high threat condition, there is more variation from the stereotype, with people 
+
+
+## BFI
+
+```{r}
+# Grouped by threat condition bc stereotype likely varies by condition; grouped by item bc stereotype may vary by item
+bfi_stereo_exp_data <- clean_data_bfi %>% 
+  group_by(bfi_number, target_condition) %>% 
+  mutate(bfi_stereo_ave = mean(bfi_stereo)) %>% 
+  ungroup() %>% 
+  mutate(bfi_diff = abs(bfi_stereo - bfi_stereo_ave))
+
+bfi_diff_mod <- lmer(bfi_targ_pmc ~ bfi_self_pmc*bfi_diff*itt_comp_gmc +
+       (bfi_self_pmc | sub_id), data = bfi_stereo_exp_data)
+
+tab_model(bfi_diff_mod)
+summary(bfi_diff_mod)
+```
+
+No interactions of projection with bfi_diff
