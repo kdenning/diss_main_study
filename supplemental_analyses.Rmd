@@ -432,4 +432,313 @@ qqnorm(ranef(bfi_nostereo_targ)$sub_id$`(Intercept)`,
 plot_model(bfi_nostereo_targ, type='diag')
 ```
 
+# Exploring different personality traits and counter-projection
 
+## Extraversion
+
+```{r extra data}
+# Getting data for extraversion model
+extra_mod_data <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  filter(bfi_number == 1 | bfi_number == 6 | bfi_number == 11) %>% 
+  unique() %>% 
+  na.omit()
+
+extra_mod_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = extra_mod_data) # singular with correlation betwwen intercept and random slope equal to 0 and random slope very close to o
+summary(extra_mod_nostereo)
+tab_model(extra_mod_nostereo)
+```
+
+
+### Simple slopes
+
+```{r}
+threat_levels = list(itt_comp_gmc = c(-1.07, 0.0, 1.07))
+extra_ss <- emtrends(extra_mod_nostereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+extra_ss 
+test(extra_ss)
+pairs(extra_ss)
+```
+
+Normal pattern: Counter-projection with those who perceive high threat, positive projection with those who perceive low threat, neither at average threat; however, model was singular due to perfect correlation between random intercept and slope of self ratings, likely due to so few items being nested within each person
+
+### With stereotyping
+
+```{r}
+extra_mod_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc | sub_id), data = extra_mod_data) # no longer singular, but cannot have stereo be random because there are not enough observations for that many random effects
+summary(extra_mod_stereo)
+tab_model(extra_mod_stereo)
+```
+
+#### Simple slopes
+
+```{r}
+extra_ss_stereo <- emtrends(extra_mod_stereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+extra_ss_stereo 
+```
+
+No longer counter-projection, now both average and high are neither projecting nor counter-projecting while low are projecting
+
+## Agreeableness
+
+```{r agreeable data}
+# Getting data for extraversion model
+agree_mod_data <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  filter(bfi_number == 2 | bfi_number == 7 | bfi_number == 12) %>% 
+  unique() %>% 
+  na.omit()
+
+agree_mod_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = agree_mod_data)
+summary(agree_mod_nostereo)
+tab_model(agree_mod_nostereo)
+```
+
+Not singular but no interaction of threat and self
+
+### Simple slopes
+
+```{r}
+agree_ss <- emtrends(agree_mod_nostereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+agree_ss 
+test(agree_ss)
+pairs(agree_ss)
+```
+
+People positively project on all agreeable traits.
+
+### With stereotyping
+
+```{r}
+agree_mod_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc | sub_id), data = agree_mod_data) # no longer singular, but cannot have stereo be random because there are not enough observations for that many random effects
+tab_model(agree_mod_stereo)
+```
+
+
+#### Simple slopes
+
+```{r}
+agree_ss_stereo <- emtrends(agree_mod_stereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+agree_ss_stereo
+```
+
+No change
+
+## Conscientiousness
+
+```{r agreeable data}
+# Getting data for extraversion model
+conscientious_mod_data <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  filter(bfi_number == 3 | bfi_number == 8 | bfi_number == 13) %>% 
+  unique() %>% 
+  na.omit()
+
+conscientious_mod_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = conscientious_mod_data)
+summary(conscientious_mod_nostereo)
+tab_model(conscientious_mod_nostereo)
+```
+
+### Simple slopes
+
+```{r}
+conscientious_ss <- emtrends(conscientious_mod_nostereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+conscientious_ss
+test(conscientious_ss)
+pairs(conscientious_ss)
+```
+
+Normal pattern: People counter-projected when high threat, projected at low threat, neither at average threat
+
+### With stereotyping
+
+```{r}
+conscientious_mod_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc | sub_id), data = conscientious_mod_data) # no longer singular, but cannot have stereo be random because there are not enough observations for that many random effects
+tab_model(conscientious_mod_stereo)
+```
+
+Significant interaction goes away...
+
+#### Simple slopes
+
+```{r}
+conscientious_ss_stereo <- emtrends(conscientious_mod_stereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+conscientious_ss_stereo
+```
+
+No projection or counter-projection regardless of threat level
+
+## Negative emotionality
+
+```{r agreeable data}
+# Getting data for extraversion model
+negemo_mod_data <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  filter(bfi_number == 4 | bfi_number == 9 | bfi_number == 14) %>% 
+  unique() %>% 
+  na.omit()
+
+negemo_mod_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = negemo_mod_data)
+summary(negemo_mod_nostereo)
+tab_model(negemo_mod_nostereo)
+```
+
+## Simple slopes
+
+```{r}
+negemo_ss <- emtrends(negemo_mod_nostereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+negemo_ss
+test(negemo_ss)
+pairs(negemo_ss)
+```
+
+Same pattern: High threat counter-projects, low threat projects, average threat does neither
+
+### With stereotyping
+
+```{r}
+negemo_mod_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc | sub_id), data = negemo_mod_data) 
+tab_model(negemo_mod_stereo)
+```
+
+#### Simple slopes
+
+```{r}
+negemo_ss_stereo <- emtrends(negemo_mod_stereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+negemo_ss_stereo
+```
+
+Positive projection with low perceivers and average perceivers, while high are doing neither
+
+## Open-mindedness
+
+```{r open minded data}
+# Getting data for extraversion model
+open_mod_data <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  filter(bfi_number == 5 | bfi_number == 10 | bfi_number == 15) %>% 
+  unique() %>% 
+  na.omit()
+
+open_mod_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = open_mod_data)
+summary(open_mod_nostereo)
+tab_model(open_mod_nostereo)
+```
+
+## Simple slopes
+
+```{r}
+open_ss <- emtrends(open_mod_nostereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+open_ss
+test(negemo_ss)
+pairs(negemo_ss)
+```
+
+Slightly different: No counter-projection - both high and average neither counter-project or project, while low perceivers project
+
+### With stereotyping
+
+```{r}
+open_mod_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc | sub_id), data = open_mod_data) 
+tab_model(negemo_mod_stereo)
+```
+
+#### Simple slopes
+
+```{r}
+open_ss_stereo <- emtrends(open_mod_stereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+open_ss_stereo
+```
+
+Both high and average are not projecting nor counter-projection, while low perceivers are positively projecting
+
+
+## Honesty
+
+```{r honesty data}
+# Getting data for extraversion model
+honesty_mod_data <- clean_data_bfi %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  filter(bfi_number == 16 | bfi_number == 17 | bfi_number == 18 | bfi_number == 19) %>% 
+  unique() %>% 
+  na.omit()
+
+honesty_mod_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
+                     (bfi_self_pmc | sub_id), data = honesty_mod_data)
+summary(honesty_mod_nostereo)
+tab_model(honesty_mod_nostereo)
+```
+
+## Simple slopes
+
+```{r}
+honesty_ss <- emtrends(honesty_mod_nostereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+honesty_ss
+test(honesty_ss)
+pairs(honesty_ss)
+```
+
+People are neither projecting nor counter-projecting in high threat and project in the rest
+
+### With stereotyping
+
+```{r}
+honesty_mod_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc +
+                     (bfi_self_pmc | sub_id), data = honesty_mod_data) 
+tab_model(honesty_mod_stereo)
+```
+
+#### Simple slopes
+
+```{r}
+honesty_ss_stereo <- emtrends(honesty_mod_stereo, ~ itt_comp_gmc,
+                              var ="bfi_self_pmc",
+                              at = threat_levels)
+
+honesty_ss_stereo
+```
+
+The pattern did not change after stereotyping was accounted for
