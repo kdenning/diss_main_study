@@ -134,7 +134,7 @@ corrplot(eli_pol_cor,
          tl.cex = .85,
          tl.col = 'black',
          addgrid.col = 'white',
-         addCoef.col = 'grey50')
+         addCoef.col = 'grey50', type = 'lower')
 ```
 
 Responses on the ELI are not related to responses on the political orientation questions nor each other (aka orthogonal)
@@ -170,7 +170,8 @@ corrplot(eli_targ_matrix_targ,
          tl.cex = .85,
          tl.col = 'black',
          addgrid.col = 'white',
-         addCoef.col = 'grey50')
+         addCoef.col = 'grey50',
+         type = 'lower')
 ```
 
 The target has slightly higher correlations overall for the ELI, but lower ones in relation to political orientation
@@ -206,7 +207,8 @@ corrplot(eli_stereo_matrix_stereo,
          tl.cex = .85,
          tl.col = 'black',
          addgrid.col = 'white',
-         addCoef.col = 'grey50')
+         addCoef.col = 'grey50',
+         type = 'lower')
 
 ```
 

@@ -378,6 +378,17 @@ summary(bfi_coffee_a)
 tab_model(bfi_coffee_a)
 ```
 
+#### Simple slopes
+
+```{r}
+psych::describe(clean_data_bfi$distance_coffee)
+bfi_coffee_ss <- emtrends(bfi_coffee, ~ distance_coffee,
+                              var ="bfi_self_pmc",
+                              at = list(distance_coffee = c(-1.14, 0.0, 1.14)))
+
+bfi_coffee_ss
+```
+
 #### Model comparison with threat composite
 
 ```{r}
@@ -414,6 +425,17 @@ bfi_town <- lmer(bfi_targ_pmc ~ bfi_self_pmc*distance_town +
 summary(bfi_town)
 
 tab_model(bfi_town)
+```
+
+#### Simple slopes
+
+```{r}
+psych::describe(clean_data_bfi$distance_town)
+bfi_town_ss <- emtrends(bfi_town, ~ distance_town,
+                              var ="bfi_self_pmc",
+                              at = list(distance_town = c(-1.7, 0.0, 1.7)))
+
+bfi_town_ss
 ```
 
 #### Model comparison with threat composite
@@ -458,6 +480,17 @@ tab_model(bfi_explicit_g)
 
 Though it does not predict conditions, group threat still leads to counter-projection on its own.
 
+#### Simple slopes
+
+```{r}
+psych::describe(clean_data_bfi$explicit_group)
+bfi_explicitg_ss <- emtrends(bfi_explicit_g, ~ explicit_group,
+                              var ="bfi_self_pmc",
+                              at = list(explicit_group = c(-0.95, 0.0, 0.95)))
+
+bfi_explicitg_ss
+```
+
 #### Model comparison with threat composite
 
 ```{r}
@@ -490,6 +523,17 @@ bfi_explicit_t <- lmer(bfi_targ_pmc ~ bfi_self_pmc*explicit_targ +
 summary(bfi_explicit_t)
 
 tab_model(bfi_explicit_t)
+```
+
+#### Simple slopes
+
+```{r}
+psych::describe(clean_data_bfi$explicit_targ)
+bfi_explicitt_ss <- emtrends(bfi_explicit_t, ~ explicit_targ,
+                              var ="bfi_self_pmc",
+                              at = list(explicit_targ = c(-1.12, 0.0, 1.12)))
+
+bfi_explicitt_ss
 ```
 
 #### Model comparison with threat composite
