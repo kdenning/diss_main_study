@@ -411,12 +411,13 @@ tab_model(analogcond_eli_randslopes)
 
 ```{r}
 cor_predictors_eli <- clean_data_eli %>% 
-  select(sub_id, eli_number, eli_self, eli_targ, itt_comp) %>% 
+  select(sub_id, eli_number, eli_self, eli_targ, eli_stereo, itt_comp) %>% 
   unique() %>% 
   na.omit() %>% 
-  select(eli_self, eli_targ, itt_comp) %>% 
+  select(eli_self, eli_targ, eli_stereo, itt_comp) %>% 
   rename("ELI: Self" = eli_self,
          "ELI: Target" = eli_targ,
+         "ELI: Stereo" = eli_stereo,
          "Threat Composite" = itt_comp)
 
 cor_matrix_predictors_eli <- cor(cor_predictors_eli)
