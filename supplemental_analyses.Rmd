@@ -439,7 +439,7 @@ plot_model(bfi_nostereo_targ, type='diag')
 ```{r extra data}
 # Getting data for extraversion model
 extra_mod_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc, target_condition, bfi_targ) %>% 
   filter(bfi_number == 1 | bfi_number == 6 | bfi_number == 11) %>% 
   unique() %>% 
   na.omit()
@@ -492,7 +492,7 @@ No longer counter-projection, now both average and high are neither projecting n
 ```{r agreeable data}
 # Getting data for extraversion model
 agree_mod_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc, target_condition, bfi_targ) %>% 
   filter(bfi_number == 2 | bfi_number == 7 | bfi_number == 12) %>% 
   unique() %>% 
   na.omit()
@@ -545,7 +545,7 @@ No change
 ```{r agreeable data}
 # Getting data for extraversion model
 conscientious_mod_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc, target_condition, bfi_targ) %>% 
   filter(bfi_number == 3 | bfi_number == 8 | bfi_number == 13) %>% 
   unique() %>% 
   na.omit()
@@ -597,7 +597,7 @@ No projection or counter-projection regardless of threat level
 ```{r agreeable data}
 # Getting data for extraversion model
 negemo_mod_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc, target_condition, bfi_targ) %>% 
   filter(bfi_number == 4 | bfi_number == 9 | bfi_number == 14) %>% 
   unique() %>% 
   na.omit()
@@ -647,7 +647,7 @@ Positive projection with low perceivers and average perceivers, while high are d
 ```{r open minded data}
 # Getting data for extraversion model
 open_mod_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc, target_condition, bfi_targ) %>% 
   filter(bfi_number == 5 | bfi_number == 10 | bfi_number == 15) %>% 
   unique() %>% 
   na.omit()
@@ -698,7 +698,7 @@ Both high and average are not projecting nor counter-projection, while low perce
 ```{r honesty data}
 # Getting data for extraversion model
 honesty_mod_data <- clean_data_bfi %>% 
-  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc) %>% 
+  select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc, target_condition, bfi_targ) %>% 
   filter(bfi_number == 16 | bfi_number == 17 | bfi_number == 18 | bfi_number == 19) %>% 
   unique() %>% 
   na.omit()
@@ -941,3 +941,90 @@ summary(bfi_diff_mod)
 ```
 
 No interactions of projection with bfi_diff
+
+# BFI facets predicted by target variable
+
+## Extraversion
+
+```{r}
+extra_targ_ave <- extra_mod_data %>% 
+  group_by(sub_id) %>% 
+  mutate(targ_ave = mean(bfi_targ)) %>% 
+  select(sub_id, target_condition, targ_ave) %>% 
+  unique()
+
+contrasts(extra_targ_ave$target_condition)
+extra_anova <- aov(targ_ave ~ target_condition, data = extra_targ_ave)
+summary(extra_anova)
+TukeyHSD(extra_anova, "target_condition")
+```
+
+## Agreeableness 
+
+```{r}
+agree_targ_ave <- agree_mod_data %>% 
+  group_by(sub_id) %>% 
+  mutate(targ_ave = mean(bfi_targ)) %>% 
+  select(sub_id, target_condition, targ_ave) %>% 
+  unique()
+
+agree_anova <- aov(targ_ave ~ target_condition, data = agree_targ_ave)
+summary(agree_anova)
+TukeyHSD(agree_anova, "target_condition")
+```
+
+## Open-mindedness
+
+```{r}
+open_targ_ave <- open_mod_data %>% 
+  group_by(sub_id) %>% 
+  mutate(targ_ave = mean(bfi_targ)) %>% 
+  select(sub_id, target_condition, targ_ave) %>% 
+  unique()
+
+open_anova <- aov(targ_ave ~ target_condition, data = open_targ_ave)
+summary(open_anova)
+TukeyHSD(open_anova, "target_condition")
+```
+
+## Conscientiousness
+
+```{r}
+conscientious_targ_ave <- conscientious_mod_data %>% 
+  group_by(sub_id) %>% 
+  mutate(targ_ave = mean(bfi_targ)) %>% 
+  select(sub_id, target_condition, targ_ave) %>% 
+  unique()
+
+conscientious_anova <- aov(targ_ave ~ target_condition, data = conscientious_targ_ave)
+summary(conscientious_anova)
+TukeyHSD(conscientious_anova, "target_condition")
+```
+
+## Negative emotionality
+
+```{r}
+negemo_targ_ave <- negemo_mod_data %>% 
+  group_by(sub_id) %>% 
+  mutate(targ_ave = mean(bfi_targ)) %>% 
+  select(sub_id, target_condition, targ_ave) %>% 
+  unique()
+
+negemo_anova <- aov(targ_ave ~ target_condition, data = negemo_targ_ave)
+summary(negemo_anova)
+TukeyHSD(negemo_anova, "target_condition")
+```
+
+## Honesty
+
+```{r}
+honesty_targ_ave <- honesty_mod_data %>% 
+  group_by(sub_id) %>% 
+  mutate(targ_ave = mean(bfi_targ)) %>% 
+  select(sub_id, target_condition, targ_ave) %>% 
+  unique()
+
+honesty_anova <- aov(targ_ave ~ target_condition, data = honesty_targ_ave)
+summary(honesty_anova)
+TukeyHSD(honesty_anova, "target_condition")
+```
