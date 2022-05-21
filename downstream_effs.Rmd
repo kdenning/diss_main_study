@@ -107,7 +107,7 @@ cp_main <- mod_coeffs$sub_id$bfi_self_pmc
 threat_comp <- mod_coeffs$sub_id$`bfi_self_pmc:itt_comp_gmc`
 
 sub_id <- clean_data_bfi %>% 
-  select(sub_id, will_to_convo) %>% 
+  select(sub_id, will_to_convo, analog_condition) %>% 
   unique()
 
 coeffs_df <- cbind(sub_id, cp_main, threat_comp)
@@ -138,6 +138,15 @@ summary(downstream_main)
 # downstream_sig_int <- lm(will_to_convo ~ threat_comp, data = coeffs_df)
 # summary(downstream_sig_int)
 ```
+
+### With analogous pt
+
+```{r}
+downstream_pt <- lm(will_to_convo ~ cp_main*analog_condition, data = coeffs_df)
+summary(downstream_pt)
+```
+
+No interaction or main effect of analog pt on downstream effects
 
 ## Visualization
 
@@ -172,7 +181,7 @@ cp_main_eli <- eli_mod_coeffs$sub_id$eli_self_pmc
 threat_comp_eli <- eli_mod_coeffs$sub_id$`eli_self_pmc:itt_comp_gmc`
 
 sub_id_eli <- clean_data_eli %>% 
-  select(sub_id, will_to_convo) %>% 
+  select(sub_id, will_to_convo, analog_condition) %>% 
   unique()
 
 coeffs_df_eli <- cbind(sub_id_eli, cp_main_eli, threat_comp_eli)
@@ -203,6 +212,16 @@ summary(downstream_main_eli)
 # mod_threat_eli <- lm(will_to_convo ~ threat_comp_eli, data = coeffs_df_eli)
 # summary(mod_threat_eli)
 ```
+
+### Interaction with analogous pt
+
+```{r}
+# Singularities with so many in the models, so will do individual models
+downstream_analog_eli <- lm(will_to_convo ~ cp_main_eli*analog_condition, data = coeffs_df_eli)
+summary(downstream_analog_eli)
+```
+
+No effect of analog pt
 
 ## Visualization  {.tabset .tabset-fade .tabset-pills}
 
