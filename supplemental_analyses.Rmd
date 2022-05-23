@@ -164,11 +164,11 @@ filter_loss <- clean_data_bfi %>%
 hist(filter_loss$itt_comp)
 ```
 
-# Testing effect of centering
+# Testing effect of centering  {.tabset .tabset-fade .tabset-pills}
 
 ## Only composite
 
-### erson mean centered
+### person mean centered
 
 ```{r}
 data_bfi <- clean_data_bfi %>% 
@@ -193,83 +193,7 @@ summary(bfi_gmc1)
 tab_model(bfi_gmc1)
 ```
 
-
-## Direct path c
-
-```{r}
-path_c2 <- lmer(bfi_targ_pmc ~ bfi_self_pmc*target_condition +
-                     (bfi_self_pmc | sub_id), data = bfi_data)
-summary(path_c2)
-tab_model(path_c2)
-```
-
-### Simple Slopes
-
-```{r}
-targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
-path_c2_effects <- emtrends(path_a2, ~ target_condition,
-                              var ="bfi_self_pmc",
-                              at = targ_levels)
-
-
-path_a2_effects
-test(path_c2_effects)
-pairs(path_c2_effects)
-```
-
-### Visualization
-
-```{r}
-path_c2_data <- effect("bfi_self_pmc:target_condition",
-                         xlevels = list(target_condition = c("CONTROL",
-                                                             "WARM",
-                                                             "LOSS")),
-                         mod = path_c2)
-
-path_c2_data <- as.data.frame(path_c2_data)
-path_c2_data$target_condition <- as.factor(path_c2_data$target_condition)
-
-path_c2_data %<>% 
-  mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
-
-ggplot(path_c2_data, aes(bfi_self_pmc, fit, group = target_condition)) +
-  geom_smooth(method = "lm", 
-                size = .7, 
-                se = TRUE,
-                colour = "black", 
-                aes(linetype = target_condition)) +
-    theme_minimal(base_size = 13) +
-    theme(legend.key.size = unit(1, "cm")) +
-  scale_linetype_manual("Target Variable",
-                        breaks = c("CONTROL", "WARM", "LOSS"), 
-                       labels = c("Least threatening",
-                                  "Medium threatening",
-                                  "Most threatening"),
-                       values = c("solid",
-                                  "dashed",
-                                  "dotted")) +
-    labs(x = "BFI responses for self",
-       y = "BFI responses for target")
-```
-
-### Assumptions
-
-```{r}
-# checking normality of conditional residuals
-qqnorm(residuals(bfi_nostereo_targ), main="Q-Q plot for conditional residuals")
-
-# checking the normality of the random effects (here random intercept):
-qqnorm(ranef(bfi_nostereo_targ)$sub_id$bfi_self_pmc,
-       main="Q-Q plot for the self random effect")
-
-# Checking residuals for intercept
-qqnorm(ranef(bfi_nostereo_targ)$sub_id$`(Intercept)`,
-       main="Q-Q plot for the random intercept")
-
-plot_model(bfi_nostereo_targ, type='diag')
-```
-
-# Exploring different personality traits and counter-projection
+# Exploring different personality traits and counter-projection  {.tabset .tabset-fade .tabset-pills}
 
 ## Extraversion
 
@@ -286,7 +210,6 @@ extra_mod_nostereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc +
 summary(extra_mod_nostereo)
 tab_model(extra_mod_nostereo)
 ```
-
 
 ### Simple slopes
 
@@ -364,7 +287,6 @@ agree_mod_stereo <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*bfi_stereo_pmc
 tab_model(agree_mod_stereo)
 ```
 
-
 #### Simple slopes
 
 ```{r}
@@ -379,7 +301,7 @@ No change
 
 ## Conscientiousness
 
-```{r agreeable data}
+```{r}
 # Getting data for extraversion model
 conscientious_mod_data <- clean_data_bfi %>% 
   select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc, target_condition, bfi_targ) %>% 
@@ -431,7 +353,7 @@ No projection or counter-projection regardless of threat level
 
 ## Negative emotionality
 
-```{r agreeable data}
+```{r}
 # Getting data for extraversion model
 negemo_mod_data <- clean_data_bfi %>% 
   select(sub_id, bfi_number, bfi_targ_pmc, bfi_self_pmc, bfi_stereo_pmc, itt_comp_gmc, target_condition, bfi_targ) %>% 
@@ -529,7 +451,6 @@ open_ss_stereo
 
 Both high and average are not projecting nor counter-projection, while low perceivers are positively projecting
 
-
 ## Honesty
 
 ```{r honesty data}
@@ -580,7 +501,7 @@ honesty_ss_stereo
 
 The pattern did not change after stereotyping was accounted for
 
-# Checking if difference between average and idiographic stereotypes explain counter-projection
+# Checking if difference between average and idiographic stereotypes explain counter-projection  {.tabset .tabset-fade .tabset-pills}
 
 ## ELI x target-level threat
 
@@ -635,7 +556,7 @@ effects_diff_df_me <- effect("eli_self_pmc:eli_diff",
 effects_diff_df_me <- as.data.frame(effects_diff_df_me)
 effects_diff_df_me$eli_diff <- as.factor(effects_diff_df_me$eli_diff)
   
-ggplot(effects_diff_df_int, aes(eli_self_pmc, fit, group = eli_diff)) +
+ggplot(effects_diff_df_me, aes(eli_self_pmc, fit, group = eli_diff)) +
   geom_smooth(method = "lm", 
                 size = .7, 
                 se = FALSE,
@@ -747,8 +668,8 @@ ggplot(eli_cond_diff_effects, aes(eli_self_pmc, fit, group = eli_diff)) +
     theme_minimal(base_size = 13) +
     theme(legend.key.size = unit(1, "cm")) +
   facet_wrap(~target_condition,
-             labeller = labeller(target_condition = target_labels)) 
-cale_linetype_manual("Difference from \ngroup stereotype",
+             labeller = labeller(target_condition = target_labels)) +
+scale_linetype_manual("Difference from \ngroup stereotype",
                         breaks = c("0", "0.6", "1.2"), 
                        labels = c("None",
                                   "1 SD",
@@ -779,7 +700,7 @@ summary(bfi_diff_mod)
 
 No interactions of projection with bfi_diff
 
-# BFI facets predicted by target variable
+# BFI facets predicted by target variable  {.tabset .tabset-fade .tabset-pills}
 
 ## Extraversion
 
@@ -864,4 +785,24 @@ honesty_targ_ave <- honesty_mod_data %>%
 honesty_anova <- aov(targ_ave ~ target_condition, data = honesty_targ_ave)
 summary(honesty_anova)
 TukeyHSD(honesty_anova, "target_condition")
+```
+
+# Gender differences in counter-projection  {.tabset .tabset-fade .tabset-pills}
+
+## BFI
+
+```{r}
+gender_mod_bfi <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*gender +
+                     (bfi_self_pmc | sub_id), data = clean_data_bfi)
+summary(gender_mod_bfi)
+tab_model(gender_mod_bfi)
+```
+
+## ELI
+
+```{r}
+gender_mod_eli <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*gender +
+                     (0 + eli_self_pmc | sub_id), data = clean_data_eli)
+summary(gender_mod_eli)
+tab_model(gender_mod_eli)
 ```
