@@ -82,6 +82,7 @@ bfi_data %<>%
   mutate(target_condition = forcats::fct_relevel(target_condition, c("CONTROL", "WARM", "LOSS")))
 ```
 
+### Interacting
 
 ```{r}
 targ_analog_mod <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition*target_condition +
@@ -91,7 +92,7 @@ summary(targ_analog_mod)
 tab_model(targ_analog_mod)
 ```
 
-### Simple Slopes
+#### Simple Slopes
 
 ```{r}
 targ_levels <-list(target_condition = c("CONTROL", "LOSS", "WARM"))
@@ -115,7 +116,7 @@ test(simpslopes_int)
 pairs(simpslopes_int)
 ```
 
-### Visualization
+#### Visualization
 
 ```{r}
 ggplot(bfi_data, aes(bfi_self_pmc, bfi_targ_pmc, group = target_condition)) +
@@ -136,5 +137,38 @@ ggplot(bfi_data, aes(bfi_self_pmc, bfi_targ_pmc, group = target_condition)) +
                                   "dotted")) +
     labs(x = "BFI responses for self",
        y = "BFI responses for target")
+```
+
+### Not interacting
+
+```{r}
+targ_analog_me <- lmer(bfi_targ ~ bfi_self_pmc*analog_condition + bfi_self_pmc*target_condition +
+       (bfi_self_pmc| sub_id), data = clean_data_bfi)
+summary(targ_analog_me)
+
+tab_model(targ_analog_me)
+```
+
+#### Simple Slopes
+
+```{r}
+simpslopes_me <- emtrends(targ_analog_me, ~ target_condition,
+                              var ="bfi_self_pmc",
+                              at = targ_levels)
+
+
+simpslopes_me
+```
+
+#### P-values
+
+```{r}
+test(simpslopes_me)
+```
+
+#### Pairwise
+
+```{r}
+pairs(simpslopes_me)
 ```
 

@@ -806,3 +806,21 @@ gender_mod_eli <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*gender +
 summary(gender_mod_eli)
 tab_model(gender_mod_eli)
 ```
+
+## BFI - stereo
+
+```{r}
+gender_mod_bfi_ster <- lmer(bfi_targ_pmc ~ bfi_self_pmc*itt_comp_gmc*gender*bfi_stereo_pmc +
+                     (bfi_self_pmc + bfi_stereo_pmc | sub_id), data = clean_data_bfi)
+summary(gender_mod_bfi_ster)
+tab_model(gender_mod_bfi_ster)
+```
+
+## ELI - stereo
+
+```{r}
+gender_mod_eli_ster <- lmer(eli_targ_pmc ~ eli_self_pmc*itt_comp_gmc*gender*eli_stereo_pmc +
+                     (0 + eli_self_pmc + eli_stereo_pmc | sub_id), data = clean_data_eli)
+summary(gender_mod_eli_ster)
+tab_model(gender_mod_eli_ster)
+```
