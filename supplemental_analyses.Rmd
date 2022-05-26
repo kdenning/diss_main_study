@@ -714,7 +714,10 @@ extra_targ_ave <- extra_mod_data %>%
 contrasts(extra_targ_ave$target_condition)
 extra_anova <- aov(targ_ave ~ target_condition, data = extra_targ_ave)
 summary(extra_anova)
-TukeyHSD(extra_anova, "target_condition")
+
+extra_mm <- emmeans(extra_anova, ~target_condition)
+test(extra_mm)
+pairs(extra_mm, adjust = "tukey")
 ```
 
 ## Agreeableness 
@@ -728,7 +731,10 @@ agree_targ_ave <- agree_mod_data %>%
 
 agree_anova <- aov(targ_ave ~ target_condition, data = agree_targ_ave)
 summary(agree_anova)
-TukeyHSD(agree_anova, "target_condition")
+
+agree_mm <- emmeans(agree_anova, ~target_condition)
+test(agree_mm)
+pairs(agree_mm, adjust = "tukey")
 ```
 
 ## Open-mindedness
@@ -742,7 +748,10 @@ open_targ_ave <- open_mod_data %>%
 
 open_anova <- aov(targ_ave ~ target_condition, data = open_targ_ave)
 summary(open_anova)
-TukeyHSD(open_anova, "target_condition")
+
+open_mm <- emmeans(open_anova, ~target_condition)
+test(open_mm)
+pairs(open_mm, adjust = "tukey")
 ```
 
 ## Conscientiousness
@@ -756,7 +765,10 @@ conscientious_targ_ave <- conscientious_mod_data %>%
 
 conscientious_anova <- aov(targ_ave ~ target_condition, data = conscientious_targ_ave)
 summary(conscientious_anova)
-TukeyHSD(conscientious_anova, "target_condition")
+
+conscientious_mm <- emmeans(conscientious_anova, ~target_condition)
+test(conscientious_mm)
+pairs(conscientious_mm, adjust = "tukey")
 ```
 
 ## Negative emotionality
@@ -770,7 +782,10 @@ negemo_targ_ave <- negemo_mod_data %>%
 
 negemo_anova <- aov(targ_ave ~ target_condition, data = negemo_targ_ave)
 summary(negemo_anova)
-TukeyHSD(negemo_anova, "target_condition")
+
+negemo_mm <- emmeans(negemo_anova, ~target_condition)
+test(negemo_mm)
+pairs(negemo_mm, adjust = "tukey")
 ```
 
 ## Honesty
@@ -784,7 +799,10 @@ honesty_targ_ave <- honesty_mod_data %>%
 
 honesty_anova <- aov(targ_ave ~ target_condition, data = honesty_targ_ave)
 summary(honesty_anova)
-TukeyHSD(honesty_anova, "target_condition")
+
+honesty_mm <- emmeans(honesty_anova, ~target_condition)
+test(honesty_mm)
+pairs(honesty_mm, adjust = "tukey")
 ```
 
 # Gender differences in counter-projection  {.tabset .tabset-fade .tabset-pills}
